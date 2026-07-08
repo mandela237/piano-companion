@@ -1,0 +1,16 @@
+{
+  "name": "Piano Performance Companion",
+  "short_name": "Piano Companion",
+  "description": "Synchronized chords, lyrics and keyboard diagrams for the song you're playing — a live performance companion for pianists and worship musicians.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070B16",
+  "theme_color": "#0B1122",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
