@@ -855,9 +855,8 @@ const SPEEDS=[0.5,0.75,1.0,1.25];
    production (GitHub Pages etc.): no default — a deployed backend must be configured. */
 const IS_LOCAL=['localhost','127.0.0.1'].includes(location.hostname);
 const LOCAL_API='http://127.0.0.1:8756';
-/* Set PROD_API to the deployed backend URL (https://…) to give every user a
-   working default — Settings then only exists as a per-user override. */
-const PROD_API='';
+/* Deployed backend — every user gets this default; Settings is a per-user override. */
+const PROD_API='https://piano-companion.onrender.com';
 let API=localStorage.getItem('pc-api')||(IS_LOCAL?LOCAL_API:PROD_API);
 const apiBase=()=>API.replace(/\/+$/,'');
 const apiConfigured=()=>!!apiBase();
