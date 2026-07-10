@@ -229,6 +229,13 @@
     background:rgba(229,140,79,.12); border:1px solid rgba(229,140,79,.3); border-radius:6px; padding:2.5px 7px;}
   .err-note{margin-top:12px; padding:10px 12px; border-radius:12px; font-size:11.5px; line-height:1.5;
     color:#F5B9B0; background:rgba(229,96,79,.10); border:1px solid rgba(229,96,79,.35);}
+  .playchord.alt{background:var(--card2); color:var(--gold); box-shadow:none; border:1px solid var(--line);}
+  .sheet textarea{width:100%; box-sizing:border-box; margin-top:8px; background:var(--bg1);
+    border:1px solid var(--line); border-radius:12px; padding:10px 12px; color:var(--text);
+    font-size:12.5px; font-family:var(--ui); outline:none; resize:vertical;}
+  .sheet textarea:focus{border-color:rgba(233,185,92,.55);}
+  .man-sel{background:var(--bg1); border:1px solid var(--line); border-radius:10px; color:var(--text);
+    font-size:12.5px; font-family:var(--ui); padding:8px 9px; outline:none; flex:1; min-width:0;}
   .p-empty{position:absolute; inset:0; z-index:25; display:flex; flex-direction:column; align-items:center;
     justify-content:center; gap:10px; text-align:center; background:var(--bg1); padding:0 30px;}
   .p-empty[hidden]{display:none;}
@@ -414,9 +421,13 @@
                 <span class="chip" data-src="apple">♫ Apple Music</span>
                 <span class="chip" data-src="soundcloud">☁ SoundCloud</span>
               </div>
+              <div style="display:flex; gap:14px; margin-top:9px;">
+                <span class="see" id="linkUpload">Upload audio file</span>
+                <span class="see" id="linkManual">Enter chords manually</span>
+              </div>
               <p style="font-size:10.5px; color:var(--faint); margin:9px 2px 0; line-height:1.45;">
-                Runs against the analysis service (start it with <b>run-server.ps1</b>): audio extraction,
-                key, tempo, time signature, chords, measures and sections — returned as structured JSON.</p>
+                The analysis service extracts the audio and detects key, tempo, time signature,
+                chords, measures and sections — returned as structured JSON.</p>
             </div>
           </div>
 
@@ -658,10 +669,41 @@
           <div class="err-note" id="anaError" hidden></div>
           <button id="anaOpen" class="playchord" style="width:100%; justify-content:center; margin-top:14px; display:none;">
             Open in Player →</button>
-          <button id="anaSettings" class="playchord" style="width:100%; justify-content:center; margin-top:10px; display:none;
-            background:var(--card2); color:var(--gold); box-shadow:none; border:1px solid var(--line);">
+          <button id="anaSettings" class="playchord alt" style="width:100%; justify-content:center; margin-top:10px; display:none;">
             Open Settings →</button>
+          <div id="anaFallbacks" style="display:none; margin-top:10px; flex-direction:column; gap:8px;">
+            <button class="playchord alt" id="fbUpload">Upload an audio file instead →</button>
+            <button class="playchord alt" id="fbManual">Enter chords manually →</button>
+            <button class="playchord alt" id="fbDemo">Open the demo song (labeled sample) →</button>
+          </div>
           <p style="font-size:10.5px; color:var(--faint); margin:12px 2px 0; line-height:1.45;" id="anaFoot"></p>
+        </div>
+      </div>
+
+      <!-- ============ MANUAL ENTRY SHEET ============ -->
+      <div class="sheet-back" id="manBack">
+        <div class="sheet">
+          <div class="h-row"><span class="label" style="color:var(--gold);">Manual song entry</span>
+            <button class="back" id="manClose">Cancel</button></div>
+          <div class="importbox" style="margin-top:12px;">
+            <input id="manTitle" type="text" placeholder="Song title" autocomplete="off">
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <select id="manKey" class="man-sel" title="Key"></select>
+            <select id="manMode" class="man-sel" title="Mode">
+              <option value="major">major</option><option value="minor">minor</option>
+            </select>
+            <input id="manBpm" class="man-sel" type="number" value="72" min="30" max="240" title="Tempo (BPM)" style="width:72px;">
+            <select id="manMeter" class="man-sel" title="Time signature">
+              <option value="4">4/4</option><option value="3">3/4</option>
+            </select>
+          </div>
+          <textarea id="manChords" rows="3" placeholder="Chords, one per bar — e.g.  F F7 Bb F | Dm C F F"></textarea>
+          <textarea id="manLyrics" rows="2" placeholder="Lyrics per bar, separated by |  (optional)"></textarea>
+          <div class="imp-err" id="manErr"></div>
+          <button class="playchord" id="manCreate" style="width:100%; justify-content:center; margin-top:12px;">Create song →</button>
+          <p style="font-size:10.5px; color:var(--faint); margin:10px 2px 0; line-height:1.45;">
+            Manual songs have no audio — Live mode paces the bars from your tempo.</p>
         </div>
       </div>
 
@@ -696,6 +738,7 @@
 
 
   <audio id="songAudio" preload="auto"></audio>
+  <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac" hidden>
 </div>
 
 <script>
@@ -890,7 +933,12 @@ function paintAudioState(loading){
 }
 async function loadSongAudio(){
   audioOk=false; audioErr=''; SONG_AUDIO.removeAttribute('src');
-  if(!SONG||!SONG.audio||!SONG.audio.url){ audioErr='This song has no audio reference.'; paintAudioState(); return; }
+  if(!SONG||!SONG.audio||!SONG.audio.url){
+    audioErr=SONG&&SONG.source&&SONG.source.type==='manual'
+      ? '✍ Manual entry — no audio. Rehearse playback is unavailable; Live mode paces the bars from your tempo.'
+      : 'This song has no audio reference.';
+    paintAudioState(); return;
+  }
   paintAudioState(true);
   try{
     const res=await fetch(SONG.audio.url);
@@ -1108,8 +1156,11 @@ function applySongUI(){
   document.getElementById('tsChip').textContent=has?`${SONG.analysis.timeSignature.beatsPerBar}/${SONG.analysis.timeSignature.beatUnit}`:'—';
   paintAudioState();
   // browse hero
-  const isSample=has&&SONG.source&&SONG.source.type==='sample';
-  document.getElementById('heroLabel').textContent=has?(isSample?'Sample song · analyzed':'Analyzed from YouTube'):'No song loaded';
+  const srcType=has?((SONG.source||{}).type||'song'):null;
+  const isSample=srcType==='sample';
+  document.getElementById('heroLabel').textContent=has
+    ? ({sample:'Sample song · analyzed',youtube:'Analyzed from YouTube',file:'Analyzed from audio file',manual:'Manual entry'})[srcType]||'Song'
+    : 'No song loaded';
   document.getElementById('heroTitle').textContent=has?SONG.title:'Import your first song';
   document.getElementById('heroArtist').textContent=has?(SONG.artist||''):'Paste a YouTube link below — the analysis service does the rest';
   const kc=document.getElementById('heroKeychips');
@@ -1130,7 +1181,12 @@ function applySongUI(){
     const a=SONG.analysis;
     document.getElementById('infoLabel').textContent='Song info · '+(a.engine||'analyzed');
     document.getElementById('infoTitle').textContent=SONG.title;
-    document.getElementById('infoSrc').textContent=isSample?'♪ Bundled sample · public domain':'▶ '+(SONG.source.url||'');
+    document.getElementById('infoSrc').textContent=({
+      sample:'♪ Bundled sample · public domain',
+      youtube:'▶ '+(SONG.source.url||''),
+      file:'📁 Uploaded audio file',
+      manual:'✍ Entered manually'
+    })[srcType]||'—';
     document.getElementById('iKey').textContent=`${pretty(a.key.tonic)} ${a.key.mode}`+(a.key.confidence!=null?` · ${Math.round(a.key.confidence*100)}%`:'');
     document.getElementById('iTempo').textContent=`${Math.round(a.tempo.bpm)} BPM`;
     document.getElementById('iTs').textContent=`${a.timeSignature.beatsPerBar}/${a.timeSignature.beatUnit}`+(a.timeSignature.confidence!=null?` · ${Math.round(a.timeSignature.confidence*100)}%`:'');
@@ -1157,7 +1213,7 @@ function renderLibrary(){
     card.innerHTML=`<div class="art" style="${thumb?`background:center/cover no-repeat url('${thumb}')`:`background:linear-gradient(135deg,#3D5AA8,#1B2C5E)`};${active?'box-shadow:0 0 0 2px var(--gold);':''}">${thumb?'':'♪'}</div>`+
       `<div class="t">${s.title}</div>`+
       `<div class="a"><span>${(s.artist||'').slice(0,14)}</span><span>${fmtDur(s.duration)}</span></div>`+
-      `<span class="lib-badge">${s.source&&s.source.type==='sample'?'Sample':'YouTube'}</span>`;
+      `<span class="lib-badge">${({sample:'Sample',youtube:'YouTube',file:'Audio file',manual:'Manual'})[(s.source||{}).type]||'Song'}</span>`;
     card.addEventListener('click',()=>{ setActiveSong(s); go('player'); });
     rail.appendChild(card);
   });
@@ -1394,9 +1450,10 @@ function setStep(r,state,detail){
   r.querySelector('.st').textContent=state==='done'?'✓':state==='na'?'!':'';
   if(detail!==undefined) r.querySelector('.dt').textContent=detail;
 }
-function showAnaError(msg,offerSettings){
+function showAnaError(msg,offerSettings,offerFallbacks){
   const e=document.getElementById('anaError'); e.hidden=false; e.textContent=msg;
   document.getElementById('anaSettings').style.display=offerSettings?'inline-flex':'none';
+  document.getElementById('anaFallbacks').style.display=offerFallbacks?'flex':'none';
 }
 let pendingSong=null, pollTimer=null;
 async function runAnalysis(){
@@ -1423,19 +1480,19 @@ async function runAnalysis(){
   setStep(s0,'doing');
   if(!apiConfigured()){
     setStep(s0,'na','not configured');
-    showAnaError('Your analysis backend is not deployed yet. Deploy the analysis service and paste the public API URL in Settings → Analysis Service URL.',true);
+    showAnaError('Your analysis backend is not deployed yet. Deploy the analysis service and paste the public API URL in Settings → Analysis Service URL.',true,true);
     return;
   }
   if(apiMixedContent()){
     setStep(s0,'na','blocked');
-    showAnaError(`The service URL must use https:// when the app runs over https — browsers block ${apiBase()} as mixed content. Deploy the service behind https and update Settings → Analysis Service URL.`,true);
+    showAnaError(`The service URL must use https:// when the app runs over https — browsers block ${apiBase()} as mixed content. Deploy the service behind https and update Settings → Analysis Service URL.`,true,true);
     return;
   }
   if(!await apiHealth()){
     setStep(s0,'na','unreachable');
     showAnaError(API===LOCAL_API
       ? `Analysis service unreachable at ${apiBase()}. Start it with run-server.ps1 in the project folder.`
-      : `Analysis service unreachable at ${apiBase()}. Check that it is running and publicly reachable, or update Settings → Analysis Service URL.`,true);
+      : `Analysis service unreachable at ${apiBase()}. It may be waking up (free hosting sleeps when idle) — try again in a minute, or check Settings → Analysis Service URL.`,true,true);
     return;
   }
   setStep(s0,'done');
@@ -1447,17 +1504,25 @@ async function runAnalysis(){
     const r=await fetch(apiBase()+'/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({url:'https://www.youtube.com/watch?v='+vid})});
     jobId=(await r.json()).jobId;
-    if(!jobId) throw new Error('no job id returned');
-  }catch(e){ setStep(s1,'na','failed'); showAnaError('Could not submit the analysis job: '+e.message); return; }
+    if(!jobId) throw new Error('no job id');
+  }catch(e){
+    setStep(s1,'na','failed');
+    showAnaError('Could not reach the analysis service to start the job. Check your connection and try again.',true,true);
+    return;
+  }
+  pollJob(jobId,s1,s2,song=>'▶ '+(song.artist||'')+' · youtube.com/watch?v='+vid);
+}
+/* Poll a job to completion — shared by YouTube import and file upload */
+function pollJob(jobId,s1,s2,doneSrc){
   pollTimer=setInterval(async()=>{
     let st;
     try{ st=await (await fetch(apiBase()+'/jobs/'+jobId)).json(); }
-    catch(e){ clearInterval(pollTimer); setStep(s1,'na'); showAnaError('Lost connection to the analysis service mid-job.'); return; }
+    catch(e){ clearInterval(pollTimer); setStep(s1,'na'); showAnaError('Lost connection to the analysis service mid-job. Try again in a moment.',false,true); return; }
     if(st.status==='downloading') setStep(s1,'doing',st.step||'');
     else if(st.status==='analyzing'){ setStep(s1,'done'); setStep(s2,'doing',st.step||''); }
     else if(st.status==='error'){
       clearInterval(pollTimer); setStep(s1,'na'); setStep(s2,'na');
-      showAnaError('Analysis failed: '+(st.error||'unknown error'));
+      showAnaError(st.error||'Something went wrong while processing this song. Try another video or upload an audio file.',false,true);
     }
     else if(st.status==='done'){
       clearInterval(pollTimer); setStep(s1,'done');
@@ -1465,13 +1530,109 @@ async function runAnalysis(){
         const song=normalizeSong(await (await fetch(apiBase()+'/jobs/'+jobId+'/result')).json(),apiBase());
         setStep(s2,'done',`${song.analysis.bars.length} bars · ${pretty(song.analysis.key.tonic)} ${song.analysis.key.mode} · ${Math.round(song.analysis.tempo.bpm)} BPM`);
         document.getElementById('anaTitle').textContent=song.title;
-        document.getElementById('anaSrc').textContent='▶ '+(song.artist||'')+' · youtube.com/watch?v='+vid;
+        document.getElementById('anaSrc').textContent=doneSrc(song);
         libUpsert(song); pendingSong=song; renderLibrary();
         document.getElementById('anaOpen').style.display='inline-flex';
-      }catch(e){ setStep(s2,'na'); showAnaError('Could not fetch the analysis result: '+e.message); }
+      }catch(e){ setStep(s2,'na'); showAnaError('The analysis finished but its result could not be loaded. Try again.',false,true); }
     }
   },1500);
 }
+/* ---- Fallback: upload an audio file ---- */
+async function uploadAnalysis(file){
+  clearInterval(pollTimer); pendingSong=null;
+  const box=document.getElementById('anaSteps'); box.innerHTML='';
+  document.getElementById('anaOpen').style.display='none';
+  document.getElementById('anaSettings').style.display='none';
+  document.getElementById('anaFallbacks').style.display='none';
+  document.getElementById('anaError').hidden=true;
+  document.getElementById('anaTitle').textContent=file.name;
+  document.getElementById('anaSrc').textContent='📁 Local audio file · '+(file.size/1048576).toFixed(1)+' MB';
+  document.getElementById('anaFoot').textContent='Analysis service: '+(apiConfigured()?apiBase():'not configured');
+  document.getElementById('anaBack').classList.add('on');
+  const s0=stepRow(box,'Contacting analysis service');
+  setStep(s0,'doing');
+  if(!apiConfigured()){
+    setStep(s0,'na','not configured');
+    showAnaError('Your analysis backend is not deployed yet. Deploy the analysis service and paste the public API URL in Settings → Analysis Service URL.',true,true);
+    return;
+  }
+  if(!await apiHealth()){
+    setStep(s0,'na','unreachable');
+    showAnaError(`Analysis service unreachable at ${apiBase()}. Try again in a minute (free hosting wakes up on demand).`,true,true);
+    return;
+  }
+  setStep(s0,'done');
+  const s1=stepRow(box,'Uploading audio');
+  const s2=stepRow(box,'Analyzing — key · tempo · time signature · chords · sections');
+  setStep(s1,'doing');
+  let jobId;
+  try{
+    const fd=new FormData(); fd.append('file',file);
+    const r=await fetch(apiBase()+'/analyze-file',{method:'POST',body:fd});
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.detail||'upload rejected');
+    jobId=j.jobId;
+  }catch(e){
+    setStep(s1,'na','failed');
+    showAnaError(String(e.message||'').includes('large')||String(e.message||'').includes('empty')
+      ? e.message : 'The upload did not go through. Check your connection and try again.',false,true);
+    return;
+  }
+  setStep(s1,'done');
+  pollJob(jobId,s1,s2,()=>'📁 '+file.name);
+}
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];
+  e.target.value='';
+  if(f) uploadAnalysis(f);
+});
+/* ---- Fallback: manual chord entry ---- */
+function openManual(){
+  closeAna();
+  const sel=document.getElementById('manKey');
+  if(!sel.options.length) PREF.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o); });
+  sel.value=SONG?keyName():'C';
+  document.getElementById('manErr').textContent='';
+  document.getElementById('manBack').classList.add('on');
+}
+document.getElementById('manClose').addEventListener('click',()=>document.getElementById('manBack').classList.remove('on'));
+document.getElementById('manBack').addEventListener('click',e=>{ if(e.target.id==='manBack') e.target.classList.remove('on'); });
+document.getElementById('manCreate').addEventListener('click',()=>{
+  const err=document.getElementById('manErr'); err.textContent='';
+  const title=(document.getElementById('manTitle').value||'').trim()||'Untitled song';
+  const tonic=document.getElementById('manKey').value;
+  const mode=document.getElementById('manMode').value;
+  const bpm=Math.min(240,Math.max(30,parseFloat(document.getElementById('manBpm').value)||72));
+  const meter=+document.getElementById('manMeter').value;
+  const tokens=(document.getElementById('manChords').value||'').replace(/\|/g,' ').split(/\s+/).filter(Boolean).map(pretty);
+  if(!tokens.length){ err.textContent='Enter at least one chord (one per bar).'; return; }
+  const bad=tokens.filter(t=>!parseChord(t));
+  if(bad.length){ err.textContent='Unrecognized chords: '+bad.slice(0,5).join(', '); return; }
+  const lyr=(document.getElementById('manLyrics').value||'').split('|').map(s=>s.trim());
+  const dur=meter*60/bpm;
+  const bars=tokens.map((c,i)=>({start:+(i*dur).toFixed(3),end:+((i+1)*dur).toFixed(3),chord:c,lyric:lyr[i]||null}));
+  const song=normalizeSong({
+    schema:'piano-companion/song@1', id:'manual:'+Date.now(), title, artist:'Manual entry',
+    duration:bars.length*dur,
+    source:{type:'manual',url:null,videoId:null}, audio:null,
+    analysis:{engine:'manual entry',
+      key:{tonic,mode,confidence:null}, tempo:{bpm,confidence:null},
+      timeSignature:{beatsPerBar:meter,beatUnit:4,confidence:null},
+      bars, sections:[{label:'Song',startBar:0,endBar:bars.length}]}
+  },'');
+  libUpsert(song);
+  document.getElementById('manBack').classList.remove('on');
+  setActiveSong(song); go('player');
+});
+/* ---- Fallback wiring ---- */
+document.getElementById('fbUpload').addEventListener('click',()=>{ closeAna(); document.getElementById('fileInput').click(); });
+document.getElementById('linkUpload').addEventListener('click',()=>document.getElementById('fileInput').click());
+document.getElementById('fbManual').addEventListener('click',openManual);
+document.getElementById('linkManual').addEventListener('click',openManual);
+document.getElementById('fbDemo').addEventListener('click',()=>{
+  const s=LIB.find(x=>x.source&&x.source.type==='sample');
+  if(s){ closeAna(); setActiveSong(s); go('player'); }
+});
 document.getElementById('analyzeBtn').addEventListener('click',runAnalysis);
 document.getElementById('importUrl').addEventListener('keydown',e=>{ if(e.key==='Enter') runAnalysis(); });
 document.querySelectorAll('.import-row .chip[data-src]').forEach(ch=>

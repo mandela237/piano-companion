@@ -1,5 +1,5 @@
 /* Piano Companion service worker — cache-first so the app works offline on stage. */
-const CACHE = 'piano-companion-v6';
+const CACHE = 'piano-companion-v7';
 const ASSETS = [
   './',
   './index.html',

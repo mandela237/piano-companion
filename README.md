@@ -65,9 +65,26 @@ keyboard diagrams tracking the actual recording as it plays.
   `PORT=8756 python server/main.py` behind any https reverse proxy.
 
 The URL must be **https://** — browsers block plain-http backends from an
-https page (mixed content). Also note YouTube sometimes throttles or blocks
-datacenter IPs used by free hosting tiers; a self-hosted box on a home
-connection is the most reliable extractor.
+https page (mixed content).
+
+### When YouTube blocks extraction (operator notes)
+
+YouTube bot-detection sometimes blocks datacenter IPs ("Sign in to confirm
+you're not a bot"). The service already retries with alternative player
+clients, returns only friendly messages to users, and the app offers
+fallbacks (audio-file upload, manual chord entry, the labeled sample).
+To restore YouTube extraction on a blocked host:
+
+1. Export YouTube cookies from a logged-in browser using a
+   "cookies.txt" extension (Netscape format).
+2. On Render: service → **Environment → Secret Files** → add the file as
+   `cookies.txt`, then add env var `YTDLP_COOKIES_FILE=/etc/secrets/cookies.txt`.
+3. Redeploy. The cookies file becomes the first extraction strategy.
+
+Cookie setup is operator-only — the app never shows extraction internals to
+users. The extraction chain in `server/main.py` (`download_audio`) is the
+place to plug in stronger methods later (PO tokens, residential proxies, a
+self-hosted extractor box on a home connection — the most reliable option).
 
 ## Current analysis quality (baseline engine)
 
