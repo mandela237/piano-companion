@@ -136,6 +136,11 @@ def job_audio(job_id: str):
 
 
 if __name__ == '__main__':
+    import os
     import uvicorn
-    print(f'Piano Companion analysis service · engine {ENGINE} · ffmpeg: {FFMPEG}')
-    uvicorn.run(app, host='127.0.0.1', port=8756)
+    # Local dev: 127.0.0.1:8756. Deployed (Docker/Render/Railway/Fly): the platform
+    # sets PORT and the service must bind 0.0.0.0.
+    port = int(os.environ.get('PORT', '8756'))
+    host = os.environ.get('HOST', '0.0.0.0' if 'PORT' in os.environ else '127.0.0.1')
+    print(f'Piano Companion analysis service · engine {ENGINE} · ffmpeg: {FFMPEG} · {host}:{port}')
+    uvicorn.run(app, host=host, port=port)

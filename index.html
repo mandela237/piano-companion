@@ -614,15 +614,14 @@
             </div>
           </div>
 
-          <div class="set-group"><span class="label">Analysis service</span>
+          <div class="set-group"><span class="label">Analysis Service URL</span>
             <div class="card set-card">
               <div class="set-row" style="display:block;">
                 <div class="importbox" style="margin-top:2px;">
-                  <input id="apiUrl" type="text" autocomplete="off" spellcheck="false">
+                  <input id="apiUrl" type="url" autocomplete="off" spellcheck="false" inputmode="url">
                   <button id="apiSave">Save</button>
                 </div>
-                <div style="font-size:11px; color:var(--faint); margin-top:7px; line-height:1.45;" id="apiStatus">
-                  The Python service that extracts and analyzes songs. Default: http://127.0.0.1:8756</div>
+                <div style="font-size:11px; color:var(--faint); margin-top:7px; line-height:1.45;" id="apiStatus"></div>
               </div>
             </div>
           </div>
@@ -659,6 +658,9 @@
           <div class="err-note" id="anaError" hidden></div>
           <button id="anaOpen" class="playchord" style="width:100%; justify-content:center; margin-top:14px; display:none;">
             Open in Player →</button>
+          <button id="anaSettings" class="playchord" style="width:100%; justify-content:center; margin-top:10px; display:none;
+            background:var(--card2); color:var(--gold); box-shadow:none; border:1px solid var(--line);">
+            Open Settings →</button>
           <p style="font-size:10.5px; color:var(--faint); margin:12px 2px 0; line-height:1.45;" id="anaFoot"></p>
         </div>
       </div>
@@ -848,8 +850,18 @@ function playNotes(midis,dur=1.1,vol=0.10){
 let SONG=null, BARS=[], NBARS=0, trans=0, level='Intermediate', mode='rehearse';
 let cur=0, playing=false, timer=null, speed=1.0, loop=true;
 const SPEEDS=[0.5,0.75,1.0,1.25];
-let API=localStorage.getItem('pc-api')||'http://127.0.0.1:8756';
+/* Analysis service URL — two modes:
+   local development (app served from localhost): defaults to the local service;
+   production (GitHub Pages etc.): no default — a deployed backend must be configured. */
+const IS_LOCAL=['localhost','127.0.0.1'].includes(location.hostname);
+const LOCAL_API='http://127.0.0.1:8756';
+let API=localStorage.getItem('pc-api')||(IS_LOCAL?LOCAL_API:'');
 const apiBase=()=>API.replace(/\/+$/,'');
+const apiConfigured=()=>!!apiBase();
+function apiMixedContent(){
+  return location.protocol==='https:'&&/^http:\/\//i.test(apiBase())
+    &&!/^http:\/\/(localhost|127\.0\.0\.1)([:/]|$)/i.test(apiBase());
+}
 let LIB=[];
 try{ LIB=JSON.parse(localStorage.getItem('pc-lib')||'[]'); if(!Array.isArray(LIB)) LIB=[]; }catch(e){ LIB=[]; }
 function saveLib(){ try{ localStorage.setItem('pc-lib',JSON.stringify(LIB)); }catch(e){} }
@@ -1380,7 +1392,10 @@ function setStep(r,state,detail){
   r.querySelector('.st').textContent=state==='done'?'✓':state==='na'?'!':'';
   if(detail!==undefined) r.querySelector('.dt').textContent=detail;
 }
-function showAnaError(msg){ const e=document.getElementById('anaError'); e.hidden=false; e.textContent=msg; }
+function showAnaError(msg,offerSettings){
+  const e=document.getElementById('anaError'); e.hidden=false; e.textContent=msg;
+  document.getElementById('anaSettings').style.display=offerSettings?'inline-flex':'none';
+}
 let pendingSong=null, pollTimer=null;
 async function runAnalysis(){
   const raw=(document.getElementById('importUrl').value||'').trim();
@@ -1396,16 +1411,29 @@ async function runAnalysis(){
   clearInterval(pollTimer); pendingSong=null;
   const box=document.getElementById('anaSteps'); box.innerHTML='';
   document.getElementById('anaOpen').style.display='none';
+  document.getElementById('anaSettings').style.display='none';
   document.getElementById('anaError').hidden=true;
   document.getElementById('anaTitle').textContent='Analyzing song…';
   document.getElementById('anaSrc').textContent='▶ youtube.com/watch?v='+vid;
-  document.getElementById('anaFoot').textContent='Analysis service: '+apiBase();
+  document.getElementById('anaFoot').textContent='Analysis service: '+(apiConfigured()?apiBase():'not configured');
   document.getElementById('anaBack').classList.add('on');
   const s0=stepRow(box,'Contacting analysis service');
   setStep(s0,'doing');
+  if(!apiConfigured()){
+    setStep(s0,'na','not configured');
+    showAnaError('Your analysis backend is not deployed yet. Deploy the analysis service and paste the public API URL in Settings → Analysis Service URL.',true);
+    return;
+  }
+  if(apiMixedContent()){
+    setStep(s0,'na','blocked');
+    showAnaError(`The service URL must use https:// when the app runs over https — browsers block ${apiBase()} as mixed content. Deploy the service behind https and update Settings → Analysis Service URL.`,true);
+    return;
+  }
   if(!await apiHealth()){
     setStep(s0,'na','unreachable');
-    showAnaError(`Analysis service unreachable at ${apiBase()}. Start it with run-server.ps1 in the project folder, or set its URL under Settings → Analysis service.`);
+    showAnaError(API===LOCAL_API
+      ? `Analysis service unreachable at ${apiBase()}. Start it with run-server.ps1 in the project folder.`
+      : `Analysis service unreachable at ${apiBase()}. Check that it is running and publicly reachable, or update Settings → Analysis Service URL.`,true);
     return;
   }
   setStep(s0,'done');
@@ -1469,17 +1497,36 @@ function bpl(d){ bplV=Math.min(8,Math.max(2,bplV+d)); document.getElementById('b
 document.getElementById('lyrRange').addEventListener('input',e=>
   document.documentElement.style.setProperty('--lyr',e.target.value));
 const apiInput=document.getElementById('apiUrl');
-apiInput.value=API;
-document.getElementById('apiSave').addEventListener('click',async()=>{
-  API=(apiInput.value||'').trim()||'http://127.0.0.1:8756';
-  apiInput.value=API;
-  try{ localStorage.setItem('pc-api',API); }catch(e){}
+function paintApiStatus(txt){
   const st=document.getElementById('apiStatus');
-  st.textContent='Checking '+apiBase()+' …';
-  st.textContent=(await apiHealth())
+  if(txt){ st.textContent=txt; return; }
+  if(!apiConfigured())
+    st.textContent=IS_LOCAL
+      ? 'Local development mode — defaults to '+LOCAL_API+'.'
+      : 'Not configured. Deploy the analysis service (see README · server/Dockerfile) and paste its public https:// URL here.';
+  else
+    st.textContent=(API===LOCAL_API?'Local development mode · ':'Production backend · ')+apiBase();
+}
+apiInput.value=API;
+apiInput.placeholder=IS_LOCAL?LOCAL_API:'https://your-analysis-service.example.com';
+paintApiStatus();
+document.getElementById('apiSave').addEventListener('click',async()=>{
+  API=(apiInput.value||'').trim().replace(/\/+$/,'');
+  if(API&&!/^https?:\/\//i.test(API)) API='https://'+API;
+  if(!API&&IS_LOCAL) API=LOCAL_API;
+  apiInput.value=API;
+  try{ API?localStorage.setItem('pc-api',API):localStorage.removeItem('pc-api'); }catch(e){}
+  if(!apiConfigured()){ paintApiStatus(); return; }
+  if(apiMixedContent()){
+    paintApiStatus('✕ '+apiBase()+' will be blocked as mixed content — use an https:// URL when the app runs over https.');
+    return;
+  }
+  paintApiStatus('Checking '+apiBase()+' …');
+  paintApiStatus((await apiHealth())
     ? '✓ Connected to the analysis service at '+apiBase()
-    : '✕ Not reachable at '+apiBase()+'. Start it with run-server.ps1.';
+    : '✕ Not reachable at '+apiBase()+(API===LOCAL_API?'. Start it with run-server.ps1.':'. Check the deployment and the URL.'));
 });
+document.getElementById('anaSettings').addEventListener('click',()=>{ closeAna(); go('settings'); });
 
 /* ================= Boot ================= */
 buildWave(); buildWheel();

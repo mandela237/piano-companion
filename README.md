@@ -42,10 +42,32 @@ keyboard diagrams tracking the actual recording as it plays.
    YouTube link under *Break down any song*. The service URL is configurable in
    Settings → Analysis service.
 
-Note: browsers treat `http://127.0.0.1` as a secure origin, so the deployed
-HTTPS app can call a locally running service in Chrome/Edge. To use the app on
-a phone, host the service somewhere reachable (any box that can run Python)
-and set its URL in Settings.
+### Service URL modes
+
+- **Local development** — when the app itself is served from `localhost`, it
+  defaults to `http://127.0.0.1:8756` automatically.
+- **Production (GitHub Pages / phones)** — there is no default. `127.0.0.1`
+  only exists on the developer's machine, so the deployed app requires a public
+  backend URL, entered under **Settings → Analysis Service URL**. Until one is
+  configured, imports show: *"Your analysis backend is not deployed yet.
+  Deploy the analysis service and paste the public API URL in Settings."*
+
+### Deploying the analysis service
+
+`server/Dockerfile` makes this one step on any Docker host:
+
+- **Render**: New → Web Service → connect this repo → Root Directory `server`
+  → Environment `Docker` → deploy. Copy the `https://….onrender.com` URL into
+  Settings → Analysis Service URL.
+- **Railway / Fly.io**: point them at `server/` — they inject `PORT`
+  automatically and the service binds `0.0.0.0`.
+- **Your own box**: `pip install -r server/requirements.txt` + ffmpeg, then
+  `PORT=8756 python server/main.py` behind any https reverse proxy.
+
+The URL must be **https://** — browsers block plain-http backends from an
+https page (mixed content). Also note YouTube sometimes throttles or blocks
+datacenter IPs used by free hosting tiers; a self-hosted box on a home
+connection is the most reliable extractor.
 
 ## Current analysis quality (baseline engine)
 
