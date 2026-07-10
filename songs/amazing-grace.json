@@ -1,0 +1,50 @@
+{
+  "schema": "piano-companion/song@1",
+  "id": "sample:amazing-grace",
+  "title": "Amazing Grace",
+  "artist": "U.S. Air Force Band · brass",
+  "duration": 51.6,
+  "source": {
+    "type": "sample",
+    "url": "https://commons.wikimedia.org/wiki/File:Amazing_Grace_(USAFB_brass).ogg",
+    "videoId": null
+  },
+  "audio": { "url": "audio/amazing-grace.mp3", "format": "mp3" },
+  "analysis": {
+    "engine": "librosa-baseline/1.0 + manual verification",
+    "key": { "tonic": "F", "mode": "major", "confidence": 0.94 },
+    "tempo": { "bpm": 66.2, "confidence": 0.85 },
+    "timeSignature": { "beatsPerBar": 3, "beatUnit": 4, "confidence": 0.9 },
+    "bars": [
+      { "start": 1.88,  "end": 4.60,  "chord": "F",   "lyric": "Amazing" },
+      { "start": 4.60,  "end": 7.29,  "chord": "F7",  "lyric": "grace, how" },
+      { "start": 7.29,  "end": 9.94,  "chord": "Bb",  "lyric": "sweet the" },
+      { "start": 9.94,  "end": 12.59, "chord": "F",   "lyric": "sound" },
+      { "start": 12.59, "end": 15.00, "chord": "F",   "lyric": "that saved a" },
+      { "start": 15.00, "end": 17.80, "chord": "Dm7", "lyric": "wretch like" },
+      { "start": 17.80, "end": 20.53, "chord": "Gm7", "lyric": "me" },
+      { "start": 20.53, "end": 26.01, "chord": "C7",  "lyric": null },
+      { "start": 26.01, "end": 28.85, "chord": "F",   "lyric": "I once was" },
+      { "start": 28.85, "end": 31.39, "chord": "F7",  "lyric": "lost, but" },
+      { "start": 31.39, "end": 34.15, "chord": "Bb",  "lyric": "now am" },
+      { "start": 34.15, "end": 39.38, "chord": "F",   "lyric": "found," },
+      { "start": 39.38, "end": 42.30, "chord": "Dm7", "lyric": "was blind but" },
+      { "start": 42.30, "end": 44.95, "chord": "C7",  "lyric": "now I" },
+      { "start": 44.95, "end": 47.67, "chord": "F",   "lyric": "see." },
+      { "start": 47.67, "end": 50.20, "chord": "F",   "lyric": null }
+    ],
+    "sections": [
+      { "label": "Verse 1", "startBar": 0, "endBar": 16 }
+    ],
+    "chords": {
+      "F":   { "voicing": [0, 7, 12, 16] },
+      "F7":  { "voicing": [0, 10, 16, 19] },
+      "Bb":  { "voicing": [0, 7, 16, 19] },
+      "C":   { "voicing": [0, 7, 16, 19] },
+      "C7":  { "voicing": [0, 10, 16, 19] },
+      "Dm":  { "voicing": [0, 7, 12, 15] },
+      "Dm7": { "voicing": [0, 10, 15, 19] },
+      "Gm7": { "voicing": [0, 10, 15, 19] }
+    }
+  }
+}

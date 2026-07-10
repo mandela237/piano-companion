@@ -1,11 +1,11 @@
 /* Piano Companion service worker — cache-first so the app works offline on stage. */
-const CACHE = 'piano-companion-v2';
+const CACHE = 'piano-companion-v3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './songs/amazing-grace.json',
   './audio/amazing-grace.mp3',
-  './audio/amazing-grace.ogg',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-512.png',

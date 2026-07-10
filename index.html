@@ -227,6 +227,15 @@
     color:#F5D9A8; background:rgba(229,140,79,.10); border:1px solid rgba(229,140,79,.35);}
   .badge-warn{display:inline-block; margin-top:8px; font-size:10px; font-weight:700; color:#E58C4F;
     background:rgba(229,140,79,.12); border:1px solid rgba(229,140,79,.3); border-radius:6px; padding:2.5px 7px;}
+  .err-note{margin-top:12px; padding:10px 12px; border-radius:12px; font-size:11.5px; line-height:1.5;
+    color:#F5B9B0; background:rgba(229,96,79,.10); border:1px solid rgba(229,96,79,.35);}
+  .p-empty{position:absolute; inset:0; z-index:25; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:10px; text-align:center; background:var(--bg1); padding:0 30px;}
+  .p-empty[hidden]{display:none;}
+  .p-empty .pe-note{font-size:44px; opacity:.4;}
+  .p-empty p{color:var(--dim); font-size:13.5px; margin:0 0 6px;}
+  .lib-badge{font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);
+    background:var(--gold-soft); border-radius:5px; padding:2px 6px; display:inline-block; margin-top:3px;}
 
   /* ---------- Polish ---------- */
   .chip,.iconbtn,.t-btn,.speed,.pl,.song-card,.dia,.tab,.playchord,.importbox button{transition:transform .12s ease, background .2s, border-color .2s, color .2s;}
@@ -374,28 +383,19 @@
             Songs, artists, chords…
           </div>
 
-          <div class="hero-card" onclick="go('player')">
+          <div class="hero-card" id="heroCard">
             <div class="art" id="heroArt" style="background:linear-gradient(135deg,#3D5AA8,#1B2C5E)">♪</div>
             <div class="hero-meta">
-              <div class="label" id="heroLabel" style="color:var(--gold); font-size:9px;">Sample song</div>
-              <div class="t" id="heroTitle">Amazing Grace</div>
-              <div class="a" id="heroArtist">U.S. Air Force Band · brass</div>
-              <div class="keychips" id="heroKeychips"><span class="keychip">F Major</span><span class="keychip">66 BPM</span><span class="keychip">3/4</span></div>
-              <span class="badge-warn" id="heroBadge" hidden>Waiting for analysis engine · demo data</span>
-              <div class="progress"><i></i></div>
+              <div class="label" id="heroLabel" style="color:var(--gold); font-size:9px;">No song loaded</div>
+              <div class="t" id="heroTitle">Import your first song</div>
+              <div class="a" id="heroArtist">Paste a YouTube link below — the analysis service does the rest</div>
+              <div class="keychips" id="heroKeychips" style="display:none;"></div>
             </div>
-            <button class="iconbtn" id="heroClear" hidden title="Remove import, back to sample"
-              style="width:28px; height:28px; border-radius:9px; flex:none;">✕</button>
           </div>
 
           <div class="sect">
-            <div class="h-row"><span class="label">Recently opened</span><span class="see">See all</span></div>
-            <div class="rail">
-              <div class="song-card"><div class="art" style="background:linear-gradient(135deg,#7A4CB0,#3A1F63)">♬</div><div class="t">10,000 Reasons</div><div class="a"><span>Matt Redman</span><span>4:03</span></div></div>
-              <div class="song-card"><div class="art" style="background:linear-gradient(135deg,#B0684C,#5E2B1B)">♪</div><div class="t">How Great Thou Art</div><div class="a"><span>Traditional</span><span>3:12</span></div></div>
-              <div class="song-card"><div class="art" style="background:linear-gradient(135deg,#3E8E8B,#174241)">♫</div><div class="t">Oceans</div><div class="a"><span>Hillsong United</span><span>8:56</span></div></div>
-              <div class="song-card"><div class="art" style="background:linear-gradient(135deg,#8E863E,#423E17)">♩</div><div class="t">Goodness of God</div><div class="a"><span>Bethel Music</span><span>4:52</span></div></div>
-            </div>
+            <div class="h-row"><span class="label">Library</span><span class="label" id="libCount"></span></div>
+            <div class="rail" id="libraryRail"></div>
           </div>
 
           <div class="sect">
@@ -415,8 +415,8 @@
                 <span class="chip" data-src="soundcloud">☁ SoundCloud</span>
               </div>
               <p style="font-size:10.5px; color:var(--faint); margin:9px 2px 0; line-height:1.45;">
-                YouTube links are validated and their song info fetched. On-device audio analysis
-                (key, tempo, chords, sections, lyrics) ships with the analysis engine.</p>
+                Runs against the analysis service (start it with <b>run-server.ps1</b>): audio extraction,
+                key, tempo, time signature, chords, measures and sections — returned as structured JSON.</p>
             </div>
           </div>
 
@@ -439,15 +439,14 @@
               <div class="a" id="pArtist">U.S. Air Force Band · brass</div>
             </div>
             <div style="display:flex; gap:5px; align-items:center;">
-              <span class="keychip" id="keyChip">F</span><span class="keychip" id="bpmChip">66</span><span class="keychip">3/4</span>
+              <span class="keychip" id="keyChip">—</span><span class="keychip" id="bpmChip">—</span><span class="keychip" id="tsChip">—</span>
               <button class="iconbtn" id="infoBtn" style="width:30px; height:30px; border-radius:10px;" aria-label="Song info">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:15px;height:15px;"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
               </button>
             </div>
           </div>
 
-          <div class="demo-banner" id="demoBanner" hidden>
-            ⚠ YouTube analysis is not connected yet. This screen is currently showing demo data.</div>
+          <div class="demo-banner" id="audioNote" hidden></div>
 
           <div class="toolbar">
             <span class="seg" id="modeSeg" data-custom>
@@ -471,8 +470,12 @@
 
           <div class="songwave" id="songWave" title="Tap to seek"></div>
 
-          <div class="structure">
-            <span class="chip gold">Verse 1</span><span class="chip">Verse 2</span><span class="chip">Verse 3</span><span class="chip">Verse 4</span><span class="chip">Tag</span>
+          <div class="structure" id="sectionPills"></div>
+
+          <div class="p-empty" id="playerEmpty">
+            <div class="pe-note">♪</div>
+            <p>No song loaded yet.</p>
+            <button class="playchord" onclick="go('browse')">Import a song →</button>
           </div>
 
           <div class="bars" id="barsGrid"></div>
@@ -611,6 +614,19 @@
             </div>
           </div>
 
+          <div class="set-group"><span class="label">Analysis service</span>
+            <div class="card set-card">
+              <div class="set-row" style="display:block;">
+                <div class="importbox" style="margin-top:2px;">
+                  <input id="apiUrl" type="text" autocomplete="off" spellcheck="false">
+                  <button id="apiSave">Save</button>
+                </div>
+                <div style="font-size:11px; color:var(--faint); margin-top:7px; line-height:1.45;" id="apiStatus">
+                  The Python service that extracts and analyzes songs. Default: http://127.0.0.1:8756</div>
+              </div>
+            </div>
+          </div>
+
           <div class="set-group"><span class="label">Export</span>
             <div class="card set-card">
               <div class="export-row"><span class="chip">PDF</span><span class="chip">PNG</span><span class="chip">MIDI</span><span class="chip">MusicXML</span></div>
@@ -640,13 +656,10 @@
           <div class="stitle" id="anaTitle">Untitled song</div>
           <div class="ssrc" id="anaSrc">—</div>
           <div id="anaSteps" style="margin-top:12px;"></div>
-          <div class="snote" id="anaNotice" hidden>
-            YouTube analysis is not connected yet — this preview build can’t analyze new songs on-device.
-            You can open the player with clearly labeled demo data instead.</div>
+          <div class="err-note" id="anaError" hidden></div>
           <button id="anaOpen" class="playchord" style="width:100%; justify-content:center; margin-top:14px; display:none;">
-            Open in Player · demo data →</button>
-          <p style="font-size:10.5px; color:var(--faint); margin:12px 2px 0; line-height:1.45;">
-            The analysis engine (key, tempo, chords, sections, lyrics for any imported song) is the next milestone.</p>
+            Open in Player →</button>
+          <p style="font-size:10.5px; color:var(--faint); margin:12px 2px 0; line-height:1.45;" id="anaFoot"></p>
         </div>
       </div>
 
@@ -658,14 +671,14 @@
           <div class="stitle" id="infoTitle">Amazing Grace</div>
           <div class="ssrc" id="infoSrc">♪ Bundled sample recording · U.S. Air Force Band (public domain)</div>
           <div class="facts">
-            <div class="fact"><span class="label">Detected key</span><span class="v serif">F Major · 94%</span></div>
-            <div class="fact"><span class="label">Tempo</span><span class="v">66 BPM · rubato ends</span></div>
-            <div class="fact"><span class="label">Time signature</span><span class="v">3/4</span></div>
-            <div class="fact"><span class="label">Duration</span><span class="v">2:49 · 16-bar verses</span></div>
-            <div class="fact"><span class="label">Structure</span><span class="v">Intro + Verse ×3</span></div>
-            <div class="fact"><span class="label">Voicings</span><span class="v">Captured · brass</span></div>
+            <div class="fact"><span class="label">Detected key</span><span class="v serif" id="iKey">—</span></div>
+            <div class="fact"><span class="label">Tempo</span><span class="v" id="iTempo">—</span></div>
+            <div class="fact"><span class="label">Time signature</span><span class="v" id="iTs">—</span></div>
+            <div class="fact"><span class="label">Duration</span><span class="v" id="iDur">—</span></div>
+            <div class="fact"><span class="label">Structure</span><span class="v" id="iSections">—</span></div>
+            <div class="fact"><span class="label">Lyrics</span><span class="v" id="iLyrics">—</span></div>
           </div>
-          <div class="snote" id="infoTrans">Playing in the original key (F Major).</div>
+          <div class="snote" id="infoTrans">Playing in the original key.</div>
         </div>
       </div>
 
@@ -680,20 +693,21 @@
   </div>
 
 
-  <audio id="songAudio" preload="auto">
-    <source src="audio/amazing-grace.mp3" type="audio/mpeg">
-    <source src="audio/amazing-grace.ogg" type="audio/ogg">
-  </audio>
+  <audio id="songAudio" preload="auto"></audio>
 </div>
 
 <script>
-/* ================= Music data ================= */
-/* ♯ = sharp, ♭ = flat — escaped so parsing never depends on file charset */
+/* ================= Music theory core ================= */
+/* ♯ = sharp, ♭ = flat — built from constants so parsing never depends on file charset */
 const SH='♯', FL='♭';
 const NOTE_NAMES=['C','C'+SH,'D','D'+SH,'E','F','F'+SH,'G','G'+SH,'A','A'+SH,'B'];
 const PC={'C':0,'D':2,'E':4,'F':5,'G':7,'A':9,'B':11};
 ['C','D','F','G','A'].forEach(n=>{ PC[n+SH]=PC[n]+1; PC[n+'#']=PC[n]+1; });
 ['D','E','G','A','B'].forEach(n=>{ PC[n+FL]=PC[n]-1; PC[n+'b']=PC[n]-1; });
+const PREF=['C','D'+FL,'D','E'+FL,'E','F','F'+SH,'G','A'+FL,'A','B'+FL,'B'];
+function pretty(sym){ const m=String(sym).match(/^([A-G])([#b♯♭]?)(.*)$/); if(!m) return String(sym);
+  return m[1]+(m[2]==='#'?SH:m[2]==='b'?FL:m[2])+m[3]; }
+
 /* Chord qualities, keyed by symbol suffix */
 const QUAL={
   '':{iv:[0,4,7],names:['1','3','5'],formula:'R + M3 + P5',label:'Major triad'},
@@ -734,36 +748,18 @@ const VOICINGS={
   'm7♭5':{'Closed':[0,3,6,10],'Open':[0,6,10,15]}
 };
 function parseChord(sym){
-  const m=sym.match(/^([A-G](?:♯|♭|#|b)?)(maj9|maj7|m7♭5|m9|m7|m6|dim7|dim|sus4|sus2|add9|m|6|7|9|13)?$/);
-  if(!m)return null;
-  return {sym,root:m[1],rootPc:PC[m[1]],q:m[2]||''};
+  const m=String(sym).match(/^([A-G](?:♯|♭|#|b)?)(maj9|maj7|m7♭5|m7b5|m9|m7|m6|dim7|dim|sus4|sus2|add9|m|6|7|9|13)?$/);
+  if(!m) return null;
+  let q=m[2]||''; if(q==='m7b5') q='m7'+FL+'5';
+  if(!QUAL[q]) return null;
+  return {sym:String(sym),root:m[1],rootPc:PC[m[1]],q};
 }
-function chordNotes(sym){ const c=parseChord(sym); return QUAL[c.q].iv.map(iv=>(c.rootPc+iv)%12); }
-function noteName(pc){ return PREF[((pc%12)+12)%12]; } /* preferred spellings: flats except F♯ */
-
-/* ================= Song (analyzed from the imported recording — key of F) ================= */
-const LYRICS=['Amazing','grace, how','sweet the','sound','that saved a','wretch like','me','—',
-  'I once was','lost, but','now am','found,','was blind but','now I','see.','—'];
-/* Three difficulty arrangements. Advanced = faithful transcription of the recording
-   (the band plays a Gm7→C7 ii–V at bar 7); lower levels simplify it. */
-const LEVELS={
-  Beginner:     ['F','F','B♭','F','F','Dm','C','C','F','F','B♭','F','Dm','C','F','F'],
-  Intermediate: ['F','F7','B♭','F','F','Dm','C','C7','F','F7','B♭','F','Dm','C7','F','F'],
-  Advanced:     ['F','F7','B♭','F','F','Dm7','Gm7','C7','F','F7','B♭','F','Dm7','C7','F','F']
-};
-/* Bar downbeat times (s) measured from the recording — includes the band's fermatas at bars 8 and 12 */
-const BAR_TIMES=[1.88,4.60,7.29,9.94,12.59,15.00,17.80,20.53,26.01,28.85,31.39,34.15,39.38,42.30,44.95,47.67];
-const SONG_END=50.2, PICKUP=0.90;
-function barDur(i){ return ((i<15?BAR_TIMES[i+1]:SONG_END)-BAR_TIMES[i]); }
-/* Chord voicings detected from the recording (brass close harmony), semitones above root */
-const SONG_VOICE={'F':[0,7,12,16],'F7':[0,10,16,19],'B♭':[0,7,16,19],'C':[0,7,16,19],
-  'C7':[0,10,16,19],'Dm':[0,7,12,15],'Dm7':[0,10,15,19],'Gm7':[0,10,15,19]};
-/* Transposition + performance mode state */
-const PREF=['C','D'+FL,'D','E'+FL,'E','F','F'+SH,'G','A'+FL,'A','B'+FL,'B'];
-let trans=0, level='Intermediate', mode='rehearse';
-function transSymBy(sym,d){ const m=sym.match(/^([A-G](?:♯|♭|#|b)?)(.*)$/); return PREF[((PC[m[1]]+d)%12+12)%12]+m[2]; }
+function chordNotes(sym){ const c=parseChord(sym); return c?QUAL[c.q].iv.map(iv=>(c.rootPc+iv)%12):[]; }
+function noteName(pc){ return PREF[((pc%12)+12)%12]; }
+function transSymBy(sym,d){ const m=String(sym).match(/^([A-G](?:♯|♭|#|b)?)(.*)$/); if(!m) return sym;
+  return PREF[((PC[m[1]]+d)%12+12)%12]+m[2]; }
 const transSym=s=>transSymBy(s,trans);
-function keyName(){ return PREF[(5+trans)%12]; } /* detected key: F */
+
 const DEG_FUNC={
   0:{'':['I','Tonic'],'maj7':['Imaj7','Tonic'],'maj9':['Imaj9','Tonic'],'6':['I6','Tonic'],'add9':['Iadd9','Tonic'],
      'sus2':['Isus2','Tonic (suspension)'],'sus4':['Isus4','Suspension'],'7':['I7','Tonic (dominant color)'],
@@ -775,38 +771,47 @@ const DEG_FUNC={
   9:{'m':['vi','Relative minor'],'m7':['vi7','Relative minor'],'m9':['vi9','Relative minor']},
   11:{'dim':['vii°','Leading tone'],'dim7':['vii°7','Leading tone'],'m7♭5':['viiø7','Leading tone']}
 };
+function keyPc(){ if(!SONG) return 0; const t=pretty(SONG.analysis.key.tonic); return PC[t]!==undefined?PC[t]:0; }
+function keyName(){ return PREF[((keyPc()+trans)%12+12)%12]; }
 function funcOf(sym){ const c=parseChord(sym); if(!c) return ['—','—'];
-  const d=((c.rootPc-(5+trans))%12+12)%12; return (DEG_FUNC[d]&&DEG_FUNC[d][c.q])||['—','Non-diatonic']; }
+  const d=((c.rootPc-(keyPc()+trans))%12+12)%12; return (DEG_FUNC[d]&&DEG_FUNC[d][c.q])||['—','Non-diatonic']; }
+
+/* Difficulty = simplification of the detected chord */
+function simplify(sym,lv){
+  const c=parseChord(sym); if(!c) return sym;
+  if(lv==='Advanced') return sym;
+  if(lv==='Intermediate'){
+    const map={'maj9':'maj7','9':'7','m9':'m7','13':'7','add9':'','6':'','m6':'m','dim7':'dim'};
+    return c.root+(map[c.q]!==undefined?map[c.q]:c.q);
+  }
+  const tri={'m':'m','m7':'m','m9':'m','m6':'m','dim':'dim','dim7':'dim'}; tri['m7'+FL+'5']='dim';
+  return c.root+(tri[c.q]||'');
+}
 
 /* ================= Keyboard render ================= */
 function isBlack(midi){ return [1,3,6,8,10].includes(midi%12); }
 function renderPiano(el,lo,hi,hl){
-  // hl: Map midi -> {finger}
   el.innerHTML='';
   const whites=[]; for(let m=lo;m<=hi;m++) if(!isBlack(m)) whites.push(m);
   const wk=document.createElement('div'); wk.className='wkeys'; el.appendChild(wk);
-  const wCount=whites.length;
+  const w=100/whites.length;
   whites.forEach(m=>{
     const k=document.createElement('div'); k.className='wkey'+(hl&&hl.has(m)?' hl':'');
-    if(hl&&hl.has(m)){
-      k.innerHTML=`<span class="kfing">${hl.get(m).finger}</span><span class="knote">${noteName(m)}</span>`;
-    }
+    if(hl&&hl.has(m)) k.innerHTML=`<span class="kfing">${hl.get(m).finger}</span><span class="knote">${noteName(m)}</span>`;
     wk.appendChild(k);
   });
-  const w=100/wCount;
   let wBefore=0;
   for(let m=lo;m<=hi;m++){
     if(!isBlack(m)){ wBefore++; continue; }
     const b=document.createElement('div'); b.className='bkey'+(hl&&hl.has(m)?' hl':'');
-    const bw=w*0.62;
-    b.style.width=bw+'%'; b.style.left=(wBefore*w-bw/2)+'%';
+    const bw=w*0.62; b.style.width=bw+'%'; b.style.left=(wBefore*w-bw/2)+'%';
     if(hl&&hl.has(m)) b.innerHTML=`<span class="kfing">${hl.get(m).finger}</span><span class="knote">${noteName(m)}</span>`;
     el.appendChild(b);
   }
 }
 const FINGERS={3:[1,3,5],4:[1,2,3,5],5:[1,2,3,4,5]};
 function voicingMidis(sym,voicing,inv,offsOverride){
-  const c=parseChord(sym);
+  const c=parseChord(sym); if(!c) return [];
   const offs=(offsOverride||VOICINGS[c.q][voicing]||VOICINGS[c.q]['Closed']).slice();
   let notes=offs.map(o=>48+c.rootPc+o);
   for(let i=0;i<inv;i++){ notes.sort((a,b)=>a-b); notes[0]+=12; }
@@ -820,7 +825,7 @@ function hlMap(midis){
   const m=new Map(); midis.forEach((n,i)=>m.set(n,{finger:f[i]})); return m;
 }
 
-/* ================= Audio ================= */
+/* ================= Audio (synth for chord audition) ================= */
 let AC=null;
 function audio(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended')AC.resume(); return AC; }
 function playTone(midi,when,dur,vol,type,cutoff){
@@ -838,8 +843,62 @@ function playTone(midi,when,dur,vol,type,cutoff){
 function playNotes(midis,dur=1.1,vol=0.10){
   try{ const ctx=audio(); midis.forEach(m=>playTone(m,ctx.currentTime,dur,vol)); }catch(e){}
 }
-/* The song itself is played from the imported recording (embedded below), not synthesized.
-   playTone/playNotes remain for chord audition in the dictionary, circle and record screens. */
+
+/* ================= App state ================= */
+let SONG=null, BARS=[], NBARS=0, trans=0, level='Intermediate', mode='rehearse';
+let cur=0, playing=false, timer=null, speed=1.0, loop=true;
+const SPEEDS=[0.5,0.75,1.0,1.25];
+let API=localStorage.getItem('pc-api')||'http://127.0.0.1:8756';
+const apiBase=()=>API.replace(/\/+$/,'');
+let LIB=[];
+try{ LIB=JSON.parse(localStorage.getItem('pc-lib')||'[]'); if(!Array.isArray(LIB)) LIB=[]; }catch(e){ LIB=[]; }
+function saveLib(){ try{ localStorage.setItem('pc-lib',JSON.stringify(LIB)); }catch(e){} }
+function libUpsert(song){ const i=LIB.findIndex(s=>s.id===song.id); if(i>=0) LIB[i]=song; else LIB.unshift(song); saveLib(); }
+
+/* Ingest a song JSON: prettify chord spellings, resolve service-relative audio URLs */
+function normalizeSong(song,base){
+  song.analysis.bars.forEach(b=>{ b.chord=pretty(b.chord); if(!parseChord(b.chord)) b.chord=b.chord.replace(/[^A-G♯♭#b].*$/,''); });
+  if(song.analysis.chords){
+    const m={}; Object.keys(song.analysis.chords).forEach(k=>m[pretty(k)]=song.analysis.chords[k]);
+    song.analysis.chords=m;
+  }
+  if(song.audio&&song.audio.url&&song.audio.url.startsWith('/')&&base) song.audio.url=base+song.audio.url;
+  return song;
+}
+
+/* ================= Song audio (the actual recording) ================= */
+const SONG_AUDIO=document.getElementById('songAudio');
+let audioOk=false, audioErr='';
+function paintAudioState(loading){
+  const n=document.getElementById('audioNote');
+  if(loading){ n.hidden=false; n.textContent='Loading audio…'; return; }
+  n.hidden=audioOk||!SONG; if(!n.hidden) n.textContent=audioErr;
+}
+async function loadSongAudio(){
+  audioOk=false; audioErr=''; SONG_AUDIO.removeAttribute('src');
+  if(!SONG||!SONG.audio||!SONG.audio.url){ audioErr='This song has no audio reference.'; paintAudioState(); return; }
+  paintAudioState(true);
+  try{
+    const res=await fetch(SONG.audio.url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    SONG_AUDIO.src=URL.createObjectURL(await res.blob()); SONG_AUDIO.load();
+    audioOk=true;
+  }catch(e){
+    audioErr='⚠ Audio unavailable — the analysis service that hosts this song’s audio isn’t reachable. '+
+      'Start it (run-server.ps1) and reopen the song. Live mode still works from the analyzed timing.';
+  }
+  paintAudioState();
+}
+
+/* ================= Derived song values ================= */
+const barChord=i=>transSym(simplify(BARS[i].chord,level));
+const beatLen=()=>SONG?60/SONG.analysis.tempo.bpm:0.9;
+const pickup=()=>Math.max(0,BARS[0].start-beatLen());
+const songEnd=()=>BARS[NBARS-1].end;
+const barDur=i=>Math.max(0.2,BARS[i].end-BARS[i].start);
+function songVoiceOffs(sym){ const c=SONG&&SONG.analysis.chords; return (c&&c[sym]&&c[sym].voicing)||null; }
+function fmtDur(s){ s=Math.round(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function findBarAt(t){ for(let i=NBARS-1;i>=0;i--) if(t>=BARS[i].start) return i; return 0; }
 
 /* ================= Navigation ================= */
 const SCREENS=['browse','player','dict','circle','record','settings'];
@@ -852,78 +911,96 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t
 
 /* ================= Player ================= */
 const grid=document.getElementById('barsGrid');
-let cur=0, playing=false, timer=null, speed=1.0, loop=true;
-const SPEEDS=[0.5,0.75,1.0,1.25];
-const SONG_AUDIO=document.getElementById('songAudio');
-const chordAt=i=>transSym(LEVELS[level][i]);
-/* Keyboard voicing per bar: Advanced shows the voicing detected in the recording */
 function playerVoiceMidis(i){
-  const base=LEVELS[level][i];
-  if(level==='Advanced'&&SONG_VOICE[base]) return voicingMidis(chordAt(i),'',0,SONG_VOICE[base]);
-  return voicingMidis(chordAt(i),'Closed',0);
+  const det=BARS[i].chord;
+  if(level==='Advanced'){ const offs=songVoiceOffs(det); if(offs) return voicingMidis(transSym(det),'',0,offs); }
+  return voicingMidis(barChord(i),'Closed',0);
 }
-function seekTo(i){ if(playing&&mode==='rehearse') SONG_AUDIO.currentTime = i===0?PICKUP:BAR_TIMES[i]; }
+function seekTo(i){ if(playing&&mode==='rehearse'&&audioOk) SONG_AUDIO.currentTime = i===0?pickup():BARS[i].start; }
 function rebuildBars(){
   grid.innerHTML='';
-  LYRICS.forEach((l,i)=>{
+  if(!SONG) return;
+  const hasLyrics=BARS.some(b=>b.lyric);
+  BARS.forEach((b,i)=>{
     const d=document.createElement('div'); d.className='bar'; d.dataset.i=i;
-    d.innerHTML=`<span class="num">${i+1}</span><div class="c">${chordAt(i)}</div><div class="l">${l}</div><i class="sweep"></i>`;
+    d.innerHTML=`<span class="num">${i+1}</span><div class="c">${barChord(i)}</div>`+
+      (hasLyrics?`<div class="l">${b.lyric||'—'}</div>`:'')+`<i class="sweep"></i>`;
     d.addEventListener('click',()=>{ setBar(i); seekTo(i); if(!playing) playNotes(playerVoiceMidis(i),1.0); });
     grid.appendChild(d);
   });
 }
-/* Waveform scrubber: 64 slices across the 16 bars */
+function buildSections(){
+  const c=document.getElementById('sectionPills'); c.innerHTML='';
+  if(!SONG) return;
+  SONG.analysis.sections.forEach((s,si)=>{
+    const ch=document.createElement('span'); ch.className='chip'; ch.textContent=s.label; ch.dataset.si=si;
+    ch.addEventListener('click',()=>{ const b=Math.min(s.startBar,NBARS-1); setBar(b); seekTo(b); });
+    c.appendChild(ch);
+  });
+}
 const waveEl=document.getElementById('songWave');
-for(let i=0;i<64;i++){
-  const b=document.createElement('i');
-  b.style.height=(24+Math.abs(Math.sin(i*0.9))*46+Math.abs(Math.sin(i*0.23))*26)+'%';
-  b.addEventListener('click',()=>{ const bi=Math.min(15,Math.floor(i/4)); setBar(bi); seekTo(bi); });
-  waveEl.appendChild(b);
+function buildWave(){
+  waveEl.innerHTML='';
+  for(let i=0;i<64;i++){
+    const b=document.createElement('i');
+    b.style.height=(24+Math.abs(Math.sin(i*0.9))*46+Math.abs(Math.sin(i*0.23))*26)+'%';
+    b.addEventListener('click',()=>{ if(!SONG) return;
+      const bi=Math.min(NBARS-1,Math.floor(i/64*NBARS)); setBar(bi); seekTo(bi); });
+    waveEl.appendChild(b);
+  }
 }
 function paintWave(){
-  const lit=Math.round(((cur+1)/16)*64);
+  if(!SONG) return;
+  const lit=Math.round(((cur+1)/NBARS)*64);
   [...waveEl.children].forEach((b,i)=>b.classList.toggle('played',i<lit));
 }
 function setBar(i){
-  cur=i;
+  if(!SONG) return;
+  cur=Math.max(0,Math.min(i,NBARS-1));
   document.querySelectorAll('.bar').forEach((b,j)=>{
-    b.classList.toggle('active',j===i); b.classList.toggle('done',j<i);
+    b.classList.toggle('active',j===cur); b.classList.toggle('done',j<cur);
     const s=b.querySelector('.sweep');
-    if(j===i){ s.style.transition='none'; s.style.width='0'; void s.offsetWidth;
-      if(playing){ s.style.transition=`width ${barDur(i)*1000/speed}ms linear`; s.style.width='100%'; } }
-    else { s.style.transition='none'; s.style.width=j<i?'100%':'0'; }
+    if(j===cur){ s.style.transition='none'; s.style.width='0'; void s.offsetWidth;
+      if(playing){ s.style.transition=`width ${barDur(cur)*1000/speed}ms linear`; s.style.width='100%'; } }
+    else { s.style.transition='none'; s.style.width=j<cur?'100%':'0'; }
   });
-  const sym=chordAt(i), fn=funcOf(sym);
+  const sym=barChord(cur), fn=funcOf(sym);
   document.getElementById('nowChord').textContent=sym;
-  document.getElementById('nowSub').textContent=`${fn[0]} · ${fn[1]} — bar ${i+1} of 16${mode==='live'?' · audio off':''}`;
-  document.getElementById('kbdTag').textContent = (level==='Advanced'&&SONG_VOICE[LEVELS[level][i]])
-    ? 'Voicing as played in the recording' : `Suggested ${level.toLowerCase()} voicing`;
-  renderPiano(document.getElementById('playerPiano'),48,72,hlMap(playerVoiceMidis(i)));
+  document.getElementById('nowSub').textContent=`${fn[0]} · ${fn[1]} — bar ${cur+1} of ${NBARS}${mode==='live'?' · audio off':''}`;
+  document.getElementById('kbdTag').textContent=(level==='Advanced'&&songVoiceOffs(BARS[cur].chord))
+    ? 'Voicing as played in the recording':`Suggested ${level.toLowerCase()} voicing`;
+  renderPiano(document.getElementById('playerPiano'),48,72,hlMap(playerVoiceMidis(cur)));
   paintWave();
+  document.querySelectorAll('#sectionPills .chip').forEach(ch=>{
+    const s=SONG.analysis.sections[+ch.dataset.si];
+    ch.classList.toggle('gold',cur>=s.startBar&&cur<s.endBar);
+  });
   const el=document.querySelector('.bar.active'); if(el) el.scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 /* Rehearse: the recording drives the playhead */
 function watch(){
   if(!playing||mode!=='rehearse') return;
   const t=SONG_AUDIO.currentTime;
-  if(t>=SONG_END){
-    if(loop){ SONG_AUDIO.currentTime=PICKUP; setBar(0); }
+  if(t>=songEnd()){
+    if(loop){ SONG_AUDIO.currentTime=pickup(); setBar(0); }
     else { togglePlay(false); return; }
   } else {
-    let i=0; while(i<15 && t>=BAR_TIMES[i+1]) i++;
-    if(t<BAR_TIMES[0]) i=0;
+    const i=t<BARS[0].start?0:findBarAt(t);
     if(i!==cur) setBar(i);
   }
   requestAnimationFrame(watch);
 }
-/* Live: silent, paced by the recording's measured bar map */
+/* Live: silent, paced by the analyzed bar map */
 function liveTick(){
   let next=cur+1;
-  if(next>=16){ if(loop) next=0; else { togglePlay(false); return; } }
+  if(next>=NBARS){ if(loop) next=0; else { togglePlay(false); return; } }
   setBar(next); timer=setTimeout(liveTick,barDur(next)*1000/speed);
 }
 function togglePlay(state){
-  playing=state!==undefined?state:!playing;
+  if(!SONG) return;
+  const want=state!==undefined?state:!playing;
+  if(want&&mode==='rehearse'&&!audioOk){ paintAudioState(); return; }
+  playing=want;
   document.getElementById('playIco').innerHTML=playing?'<path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/>':'<path d="M8 5v14l11-7L8 5Z"/>';
   document.getElementById('playBtn').classList.toggle('playing',playing);
   updateWakeLock();
@@ -932,224 +1009,193 @@ function togglePlay(state){
     setBar(cur);
     if(mode==='rehearse'){
       SONG_AUDIO.playbackRate=speed;
-      SONG_AUDIO.currentTime = cur===0?PICKUP:BAR_TIMES[cur];
+      SONG_AUDIO.currentTime = cur===0?pickup():BARS[cur].start;
       SONG_AUDIO.play().catch(()=>{});
       requestAnimationFrame(watch);
-    } else {
-      timer=setTimeout(liveTick,barDur(cur)*1000/speed);
-    }
+    } else timer=setTimeout(liveTick,barDur(cur)*1000/speed);
   } else setBar(cur);
 }
 document.getElementById('playBtn').addEventListener('click',()=>togglePlay());
-document.getElementById('fwdBtn').addEventListener('click',()=>{ const i=Math.min(cur+1,15); setBar(i); seekTo(i); });
-document.getElementById('backBtn').addEventListener('click',()=>{ const i=Math.max(cur-1,0); setBar(i); seekTo(i); });
+document.getElementById('fwdBtn').addEventListener('click',()=>{ if(!SONG)return; const i=Math.min(cur+1,NBARS-1); setBar(i); seekTo(i); });
+document.getElementById('backBtn').addEventListener('click',()=>{ if(!SONG)return; const i=Math.max(cur-1,0); setBar(i); seekTo(i); });
 document.getElementById('loopBtn').addEventListener('click',e=>{ loop=!loop; e.currentTarget.classList.toggle('on',loop); });
 document.getElementById('speedBtn').addEventListener('click',e=>{
   speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];
   e.currentTarget.textContent=speed.toFixed(speed===1?1:2).replace(/0$/,'')+'×';
-  document.getElementById('bpmChip').textContent=Math.round(66*speed);
+  if(SONG) document.getElementById('bpmChip').textContent=Math.round(SONG.analysis.tempo.bpm*speed);
   SONG_AUDIO.playbackRate=speed;
   if(playing) setBar(cur);
 });
-document.getElementById('nowDict').addEventListener('click',()=>{ openChord(LEVELS[level][cur]); go('dict'); });
-
-/* Mode: Live (silent, for performance) vs Rehearse (plays the recording) */
+document.getElementById('nowDict').addEventListener('click',()=>{ if(!SONG)return; openChord(BARS[cur].chord); go('dict'); });
 document.querySelectorAll('#modeSeg button').forEach(b=>b.addEventListener('click',()=>{
   if(playing) togglePlay(false);
   mode=b.dataset.m;
   document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b));
   document.getElementById('scr-player').classList.toggle('live',mode==='live');
-  setBar(cur);
+  if(SONG) setBar(cur);
 }));
-/* Chord difficulty (synced between player, settings, dictionary and circle) */
 function setLevel(l){
   level=l;
   document.querySelectorAll('[data-level]').forEach(b=>b.classList.toggle('on',b.dataset.level===l));
-  rebuildBars(); setBar(Math.min(cur,15));
-  if(!DICT_LEVELS[level].includes(dBase)) dBase=DICT_LEVELS[level][0];
+  rebuildBars(); if(SONG) setBar(Math.min(cur,NBARS-1));
   buildPick(); drawDict(); drawWheel();
 }
 document.querySelectorAll('[data-level]').forEach(b=>b.addEventListener('click',()=>setLevel(b.dataset.level)));
-/* Transpose */
 function setTrans(t){
   trans=((t%12)+12)%12;
-  document.getElementById('tkey').textContent=keyName();
-  document.getElementById('keyChip').textContent=keyName();
-  rebuildBars(); setBar(cur); buildPick(); drawDict();
+  document.getElementById('tkey').textContent=SONG?keyName():'—';
+  document.getElementById('keyChip').textContent=SONG?keyName():'—';
+  rebuildBars(); if(SONG) setBar(cur); buildPick(); drawDict();
 }
 document.getElementById('transDown').addEventListener('click',()=>setTrans(trans-1));
 document.getElementById('transUp').addEventListener('click',()=>setTrans(trans+1));
 document.getElementById('tkey').addEventListener('click',()=>setTrans(0));
 /* Song info sheet */
 document.getElementById('infoBtn').addEventListener('click',()=>{
-  const s=trans>6?trans-12:trans;
+  if(!SONG) return;
+  const s=trans>6?trans-12:trans, orig=pretty(SONG.analysis.key.tonic);
   document.getElementById('infoTrans').textContent = trans===0
-    ? 'Playing in the original key (F Major).'
-    : `Transposed ${s>0?'+':''}${s} semitone${Math.abs(s)>1?'s':''}: F → ${keyName()}. Chords and diagrams update everywhere; the recording itself stays in F.`;
+    ? `Playing in the original key (${orig} ${SONG.analysis.key.mode}).`
+    : `Transposed ${s>0?'+':''}${s} semitone${Math.abs(s)>1?'s':''}: ${orig} → ${keyName()}. Chords and diagrams update; the recording stays in ${orig}.`;
   document.getElementById('sheetBack').classList.add('on');
 });
 document.getElementById('sheetClose').addEventListener('click',()=>document.getElementById('sheetBack').classList.remove('on'));
 document.getElementById('sheetBack').addEventListener('click',e=>{ if(e.target.id==='sheetBack') e.target.classList.remove('on'); });
 
-/* ================= Active song state ================= */
-const SAMPLE_SONG={id:'sample',title:'Amazing Grace',artist:'U.S. Air Force Band · brass',analyzed:true};
-let activeSong=SAMPLE_SONG, pendingImport=null;
-try{ const saved=JSON.parse(localStorage.getItem('pc-active-song')||'null');
-  if(saved&&saved.id&&saved.analyzed===false) activeSong=saved; }catch(e){}
-function applySong(){
-  const s=activeSong, demo=!s.analyzed;
-  document.getElementById('pTitle').textContent=s.title;
-  document.getElementById('pArtist').textContent=s.artist||(demo?'YouTube import':'');
-  document.getElementById('demoBanner').hidden=!demo;
-  document.getElementById('heroLabel').textContent=demo?'Imported · not analyzed yet':'Sample song';
-  document.getElementById('heroTitle').textContent=s.title;
-  document.getElementById('heroArtist').textContent=s.artist||'';
-  document.getElementById('heroKeychips').style.display=demo?'none':'flex';
-  document.getElementById('heroBadge').hidden=!demo;
-  document.getElementById('heroClear').hidden=!demo;
+/* ================= Active song ================= */
+function wheelKeyFor(song){
+  let t=pretty(song.analysis.key.tonic);
+  if(song.analysis.key.mode==='minor') t=PREF[(PC[t]+3)%12];
+  return MAJORS.includes(t)?t:'C';
+}
+function setActiveSong(song){
+  if(playing) togglePlay(false);
+  SONG=song; BARS=song?song.analysis.bars:[]; NBARS=BARS.length;
+  trans=0; cur=0;
+  try{ song?localStorage.setItem('pc-active',song.id):localStorage.removeItem('pc-active'); }catch(e){}
+  if(SONG) ckSel=wheelKeyFor(SONG);
+  refreshAll();
+  if(SONG) loadSongAudio();
+}
+function refreshAll(){
+  applySongUI(); rebuildBars(); buildSections();
+  if(SONG) setBar(Math.min(cur,NBARS-1));
+  openChord(SONG?BARS[0].chord:'C');
+  drawWheel(); buildDetections();
+}
+function applySongUI(){
+  const has=!!SONG;
+  document.getElementById('playerEmpty').hidden=has;
+  document.getElementById('pTitle').textContent=has?SONG.title:'—';
+  document.getElementById('pArtist').textContent=has?(SONG.artist||''):'';
+  document.getElementById('keyChip').textContent=has?keyName():'—';
+  document.getElementById('tkey').textContent=has?keyName():'—';
+  document.getElementById('bpmChip').textContent=has?Math.round(SONG.analysis.tempo.bpm*speed):'—';
+  document.getElementById('tsChip').textContent=has?`${SONG.analysis.timeSignature.beatsPerBar}/${SONG.analysis.timeSignature.beatUnit}`:'—';
+  paintAudioState();
+  // browse hero
+  const isSample=has&&SONG.source&&SONG.source.type==='sample';
+  document.getElementById('heroLabel').textContent=has?(isSample?'Sample song · analyzed':'Analyzed from YouTube'):'No song loaded';
+  document.getElementById('heroTitle').textContent=has?SONG.title:'Import your first song';
+  document.getElementById('heroArtist').textContent=has?(SONG.artist||''):'Paste a YouTube link below — the analysis service does the rest';
+  const kc=document.getElementById('heroKeychips');
+  kc.style.display=has?'flex':'none';
+  if(has){
+    const a=SONG.analysis;
+    kc.innerHTML=`<span class="keychip">${pretty(a.key.tonic)} ${a.key.mode==='minor'?'minor':'Major'}</span>`+
+      `<span class="keychip">${Math.round(a.tempo.bpm)} BPM</span>`+
+      `<span class="keychip">${a.timeSignature.beatsPerBar}/${a.timeSignature.beatUnit}</span>`+
+      `<span class="keychip">${NBARS} bars</span>`;
+  }
   const art=document.getElementById('heroArt');
-  if(demo&&s.thumb){ art.style.background='center/cover no-repeat url("'+s.thumb+'")'; art.textContent=''; }
+  const thumb=has&&SONG.source&&SONG.source.videoId?`https://i.ytimg.com/vi/${SONG.source.videoId}/hqdefault.jpg`:null;
+  if(thumb){ art.style.background=`center/cover no-repeat url("${thumb}")`; art.textContent=''; }
   else{ art.style.background='linear-gradient(135deg,#3D5AA8,#1B2C5E)'; art.textContent='♪'; }
-  document.getElementById('infoLabel').textContent=demo?'Song info · demo data, analysis pending':'Song info · bundled sample';
-  document.getElementById('infoTitle').textContent=s.title;
-  document.getElementById('infoSrc').textContent=demo?('▶ '+(s.url||'YouTube')):'♪ Bundled sample recording · U.S. Air Force Band (public domain)';
+  // info sheet
+  if(has){
+    const a=SONG.analysis;
+    document.getElementById('infoLabel').textContent='Song info · '+(a.engine||'analyzed');
+    document.getElementById('infoTitle').textContent=SONG.title;
+    document.getElementById('infoSrc').textContent=isSample?'♪ Bundled sample · public domain':'▶ '+(SONG.source.url||'');
+    document.getElementById('iKey').textContent=`${pretty(a.key.tonic)} ${a.key.mode}`+(a.key.confidence!=null?` · ${Math.round(a.key.confidence*100)}%`:'');
+    document.getElementById('iTempo').textContent=`${Math.round(a.tempo.bpm)} BPM`;
+    document.getElementById('iTs').textContent=`${a.timeSignature.beatsPerBar}/${a.timeSignature.beatUnit}`+(a.timeSignature.confidence!=null?` · ${Math.round(a.timeSignature.confidence*100)}%`:'');
+    document.getElementById('iDur').textContent=`${fmtDur(SONG.duration)} · ${NBARS} bars`;
+    document.getElementById('iSections').textContent=a.sections.length+' section'+(a.sections.length>1?'s':'');
+    document.getElementById('iLyrics').textContent=BARS.some(b=>b.lyric)?'Synced':'Not available';
+  }
+  renderLibrary();
 }
-function setActiveSong(s){
-  activeSong=s;
-  try{ if(s.analyzed) localStorage.removeItem('pc-active-song');
-    else localStorage.setItem('pc-active-song',JSON.stringify(s)); }catch(e){}
-  applySong();
-}
-
-/* ================= YouTube import (honest placeholder — no fake analysis) ================= */
-function parseYouTube(raw){
-  try{
-    let u=raw.trim(); if(!/^https?:\/\//i.test(u)) u='https://'+u;
-    const url=new URL(u);
-    const h=url.hostname.replace(/^(www|m)\./,'');
-    let id=null;
-    if(h==='youtu.be') id=url.pathname.slice(1).split('/')[0];
-    else if(h==='youtube.com'||h==='music.youtube.com'){
-      if(url.pathname==='/watch') id=url.searchParams.get('v');
-      else{ const m=url.pathname.match(/^\/(shorts|embed|live)\/([\w-]+)/); if(m) id=m[2]; }
-    }
-    return (id&&/^[\w-]{8,16}$/.test(id))?id:null;
-  }catch(e){ return null; }
-}
-async function fetchMeta(vid){
-  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),7000);
-  try{
-    const res=await fetch('https://noembed.com/embed?url='+
-      encodeURIComponent('https://www.youtube.com/watch?v='+vid),{signal:ctl.signal});
-    const j=await res.json();
-    if(j&&j.title&&!j.error) return {title:j.title,author:j.author_name||'YouTube'};
-  }catch(e){}finally{ clearTimeout(t); }
-  return null;
-}
-function stepRow(box,label){
-  const r=document.createElement('div'); r.className='ana-step';
-  r.innerHTML='<span class="st"></span><span class="tx">'+label+'</span><span class="dt"></span>';
-  box.appendChild(r); return r;
-}
-function setStep(r,state,detail){
-  r.classList.remove('doing','done','na'); if(state) r.classList.add(state);
-  r.querySelector('.st').textContent=state==='done'?'✓':state==='na'?'!':'';
-  if(detail!==undefined) r.querySelector('.dt').textContent=detail;
-}
-async function runAnalysis(){
-  const raw=(document.getElementById('importUrl').value||'').trim();
-  const err=document.getElementById('importErr'); err.textContent='';
-  if(!raw){ err.textContent='Paste a YouTube link first.'; return; }
-  const vid=parseYouTube(raw);
-  if(!vid){
-    err.textContent=/spotify\.|music\.apple\.|soundcloud\.|\.(mp3|wav|m4a)(\?|$)/i.test(raw)
-      ? 'Only YouTube import is wired up in this preview — other sources arrive with the analysis engine.'
-      : 'That doesn’t look like a valid YouTube link.';
+document.getElementById('heroCard').addEventListener('click',()=>{
+  if(SONG) go('player'); else document.getElementById('importUrl').focus();
+});
+function renderLibrary(){
+  const rail=document.getElementById('libraryRail'); rail.innerHTML='';
+  document.getElementById('libCount').textContent=LIB.length?LIB.length+' analyzed':'';
+  if(!LIB.length){
+    rail.innerHTML='<p style="font-size:12px; color:var(--faint); margin:4px 2px;">Nothing analyzed yet.</p>';
     return;
   }
-  pendingImport=null;
-  const box=document.getElementById('anaSteps'); box.innerHTML='';
-  document.getElementById('anaOpen').style.display='none';
-  document.getElementById('anaNotice').hidden=true;
-  document.getElementById('anaTitle').textContent='Analyzing song…';
-  document.getElementById('anaSrc').textContent='▶ youtube.com/watch?v='+vid;
-  document.getElementById('anaBack').classList.add('on');
-  const s1=stepRow(box,'Validating link');
-  const s2=stepRow(box,'Fetching song info');
-  const s3=stepRow(box,'Audio analysis — key · tempo · chords · sections · lyrics');
-  setStep(s1,'done','video '+vid);
-  setStep(s2,'doing');
-  const meta=await fetchMeta(vid);
-  const title=meta?meta.title:'YouTube video '+vid;
-  setStep(s2,meta?'done':'na',meta?'':'couldn’t reach YouTube — title unavailable');
-  document.getElementById('anaTitle').textContent=title;
-  if(meta&&meta.author) document.getElementById('anaSrc').textContent='▶ '+meta.author+' · youtube.com/watch?v='+vid;
-  setStep(s3,'na','not connected');
-  document.getElementById('anaNotice').hidden=false;
-  pendingImport={id:vid,url:'youtube.com/watch?v='+vid,title,artist:meta?meta.author:'',
-    analyzed:false,thumb:'https://i.ytimg.com/vi/'+vid+'/hqdefault.jpg'};
-  document.getElementById('anaOpen').style.display='inline-flex';
+  LIB.forEach(s=>{
+    const card=document.createElement('div'); card.className='song-card';
+    const thumb=s.source&&s.source.videoId?`https://i.ytimg.com/vi/${s.source.videoId}/hqdefault.jpg`:null;
+    const active=SONG&&SONG.id===s.id;
+    card.innerHTML=`<div class="art" style="${thumb?`background:center/cover no-repeat url('${thumb}')`:`background:linear-gradient(135deg,#3D5AA8,#1B2C5E)`};${active?'box-shadow:0 0 0 2px var(--gold);':''}">${thumb?'':'♪'}</div>`+
+      `<div class="t">${s.title}</div>`+
+      `<div class="a"><span>${(s.artist||'').slice(0,14)}</span><span>${fmtDur(s.duration)}</span></div>`+
+      `<span class="lib-badge">${s.source&&s.source.type==='sample'?'Sample':'YouTube'}</span>`;
+    card.addEventListener('click',()=>{ setActiveSong(s); go('player'); });
+    rail.appendChild(card);
+  });
 }
-document.getElementById('analyzeBtn').addEventListener('click',runAnalysis);
-document.getElementById('importUrl').addEventListener('keydown',e=>{ if(e.key==='Enter') runAnalysis(); });
-document.querySelectorAll('.import-row .chip[data-src]').forEach(ch=>
-  ch.addEventListener('click',()=>{
-    const err=document.getElementById('importErr');
-    if(ch.dataset.src==='youtube'){ err.textContent=''; document.getElementById('importUrl').focus(); }
-    else err.textContent=ch.textContent.trim().replace(/^\S+\s*/,'')+
-      ' import arrives with the analysis engine — YouTube links only for now.';
-  }));
-function closeAna(){ document.getElementById('anaBack').classList.remove('on'); }
-document.getElementById('anaClose').addEventListener('click',closeAna);
-document.getElementById('anaBack').addEventListener('click',e=>{ if(e.target.id==='anaBack') closeAna(); });
-document.getElementById('anaOpen').addEventListener('click',()=>{
-  if(pendingImport) setActiveSong(pendingImport);
-  closeAna(); setBar(0); go('player');
-});
-document.getElementById('heroClear').addEventListener('click',e=>{
-  e.stopPropagation(); setActiveSong(SAMPLE_SONG);
-});
-
-rebuildBars(); setBar(0); applySong();
 
 /* ================= Dictionary ================= */
-/* Chord library grows with the player's level */
-const DICT_LEVELS={
-  Beginner:['F','B♭','C','Dm','Gm','Am','Fsus4','Csus4','B♭sus2'],
-  Intermediate:['F','Fmaj7','F6','F7','Fsus4','B♭','B♭maj7','C','C7','Csus4','Dm','Dm7','Gm7','Am7'],
-  Advanced:['F','Fmaj7','Fmaj9','F6','Fadd9','F7','F9','F13','B♭maj7','B♭maj9','C7','C9','C13','Dm7','Dm9','Gm7','Gm9','Am7','Em7♭5','Fdim7']
-};
-const LEVEL_VOICES={Beginner:['Closed','Open'],Intermediate:['Closed','Open','Gospel','Drop 2'],Advanced:null};
 const IN_SONG='In this song';
-let dBase='F', dVoice=IN_SONG, dInv=0;
+let dBase='C', dVoice='Closed', dInv=0;
+const LEVEL_VOICES={Beginner:['Closed','Open'],Intermediate:['Closed','Open','Gospel','Drop 2'],Advanced:null};
+const DEG_TEMPLATES={
+  Beginner:[[0,''],[3,''],[4,''],[5,'m'],[1,'m'],[2,'m'],[0,'sus4'],[4,'sus4']],
+  Intermediate:[[0,''],[0,'maj7'],[0,'6'],[0,'7'],[0,'sus4'],[3,''],[3,'maj7'],[4,''],[4,'7'],[4,'sus4'],[5,'m'],[5,'m7'],[1,'m7'],[2,'m7']],
+  Advanced:[[0,''],[0,'maj7'],[0,'maj9'],[0,'6'],[0,'add9'],[0,'7'],[3,'maj7'],[3,'maj9'],[4,'7'],[4,'9'],[4,'13'],[5,'m7'],[5,'m9'],[1,'m7'],[1,'m9'],[2,'m7'],[6,'m7'+FL+'5'],[0,'dim7']]
+};
+function scaleNotes(){ return SCALES[PREF[keyPc()]]||SCALES['C']; }
+function dictBases(){
+  const list=[];
+  if(SONG){ const seen=new Set(); BARS.forEach(b=>{ if(!seen.has(b.chord)){ seen.add(b.chord); list.push(b.chord); } }); }
+  const sc=scaleNotes();
+  DEG_TEMPLATES[level].forEach(d=>{ const sym=sc[d[0]]+d[1]; if(!list.includes(sym)&&parseChord(sym)) list.push(sym); });
+  return list.slice(0,24);
+}
 const pick=document.getElementById('dictPick');
 function buildPick(){
   pick.innerHTML='';
-  DICT_LEVELS[level].forEach(b=>{
-    const c=document.createElement('span'); c.className='chip'; c.textContent=transSym(b); c.dataset.base=b;
+  const inSong=new Set(SONG?BARS.map(b=>b.chord):[]);
+  dictBases().forEach(b=>{
+    const c=document.createElement('span'); c.className='chip'; c.dataset.base=b;
+    c.textContent=(inSong.has(b)?'♪ ':'')+transSym(b);
     c.addEventListener('click',()=>openChord(b)); pick.appendChild(c);
   });
 }
-function openChord(base){ dBase=base; dVoice=SONG_VOICE[base]?IN_SONG:'Closed'; dInv=0; drawDict(); }
+function openChord(base){ dBase=base; dVoice=songVoiceOffs(base)?IN_SONG:'Closed'; dInv=0; buildPick(); drawDict(); }
 function openChordAbs(sym){ openChord(transSymBy(sym,-trans)); }
 function dictMidis(){
   return dVoice===IN_SONG
-    ? voicingMidis(transSym(dBase),'',dInv,SONG_VOICE[dBase])
+    ? voicingMidis(transSym(dBase),'',dInv,songVoiceOffs(dBase))
     : voicingMidis(transSym(dBase),dVoice,dInv);
 }
 function drawDict(){
   const dSym=transSym(dBase);
-  const c=parseChord(dSym), q=QUAL[c.q];
+  const c=parseChord(dSym); if(!c) return;
+  const q=QUAL[c.q];
   pick.querySelectorAll('.chip').forEach(ch=>ch.classList.toggle('gold',ch.dataset.base===dBase));
   document.getElementById('dName').textContent=dSym;
   document.getElementById('dSub').textContent=`${c.root} ${q.label}`;
   document.getElementById('fNotes').textContent=chordNotes(dSym).map(noteName).join(' · ');
   document.getElementById('fInt').textContent=q.names.join(' · ');
   document.getElementById('fForm').textContent=q.formula;
-  document.getElementById('fLabel').textContent=`In ${keyName()} major`;
+  document.getElementById('fLabel').textContent=`In ${SONG?keyName():'C'} ${SONG?SONG.analysis.key.mode:'major'}`;
   const fn=funcOf(dSym);
   document.getElementById('fFun').textContent=`${fn[0]} — ${fn[1]}`;
-  // inversions
   const seg=document.getElementById('invSeg'); seg.innerHTML='';
   const n=q.iv.length, labels=['Root','1st','2nd','3rd','4th'].slice(0,n);
   document.getElementById('invHint').textContent=labels.length+' positions';
@@ -1158,10 +1204,9 @@ function drawDict(){
     b.addEventListener('click',()=>{ dInv=i; drawDict(); playNotes(dictMidis(),1.0); });
     seg.appendChild(b);
   });
-  // voicings, filtered by chord difficulty level; the detected one is always first
   let vlist=Object.keys(VOICINGS[c.q]);
   const allow=LEVEL_VOICES[level]; if(allow) vlist=vlist.filter(v=>allow.includes(v));
-  if(SONG_VOICE[dBase]) vlist=[IN_SONG].concat(vlist);
+  if(songVoiceOffs(dBase)) vlist=[IN_SONG].concat(vlist);
   if(!vlist.includes(dVoice)){ dVoice='Closed'; dInv=Math.min(dInv,q.iv.length-1); }
   const vr=document.getElementById('voiceRow'); vr.innerHTML='';
   vlist.forEach(v=>{
@@ -1173,29 +1218,37 @@ function drawDict(){
   const midis=dictMidis();
   renderPiano(document.getElementById('dictPiano'),48,84,hlMap(midis));
   document.getElementById('dNote').textContent = dVoice===IN_SONG
-    ? `Voicing detected in the imported recording (brass arrangement), ${['root position','1st inversion','2nd inversion','3rd inversion','4th inversion'][dInv]}: ${midis.map(m=>noteName(m)).join(' – ')}. Fingering shown on the keys.`
+    ? `Voicing detected in the recording, ${['root position','1st inversion','2nd inversion','3rd inversion','4th inversion'][dInv]}: ${midis.map(m=>noteName(m)).join(' – ')}. Fingering shown on the keys.`
     : `${['Root position','1st inversion','2nd inversion','3rd inversion','4th inversion'][dInv]}, ${dVoice.toLowerCase()} voicing: ${midis.map(m=>noteName(m)).join(' – ')}. ${allow?`Showing ${vlist.length} voicings at ${level} level.`:'All voicings unlocked at Advanced level.'} Fingering shown on the keys.`;
 }
 document.getElementById('dPlay').addEventListener('click',()=>playNotes(dictMidis(),1.4,0.12));
-buildPick(); drawDict();
 
 /* ================= Circle of Fifths ================= */
-const MAJORS=['C','G','D','A','E','B','F♯','D♭','A♭','E♭','B♭','F'];
-const MINORS=['Am','Em','Bm','F♯m','C♯m','G♯m','E♭m','B♭m','Fm','Cm','Gm','Dm'];
-const SCALES={'C':['C','D','E','F','G','A','B'],'G':['G','A','B','C','D','E','F♯'],'D':['D','E','F♯','G','A','B','C♯'],
- 'A':['A','B','C♯','D','E','F♯','G♯'],'E':['E','F♯','G♯','A','B','C♯','D♯'],'B':['B','C♯','D♯','E','F♯','G♯','A♯'],
- 'F♯':['F♯','G♯','A♯','B','C♯','D♯','E♯'],'D♭':['D♭','E♭','F','G♭','A♭','B♭','C'],'A♭':['A♭','B♭','C','D♭','E♭','F','G'],
- 'E♭':['E♭','F','G','A♭','B♭','C','D'],'B♭':['B♭','C','D','E♭','F','G','A'],'F':['F','G','A','B♭','C','D','E']};
-const SIGS={'C':'No sharps or flats','G':'1 sharp (F♯)','D':'2 sharps','A':'3 sharps','E':'4 sharps','B':'5 sharps',
- 'F♯':'6 sharps','D♭':'5 flats','A♭':'4 flats','E♭':'3 flats','B♭':'2 flats','F':'1 flat (B♭)'};
-/* Diatonic chords per difficulty level */
+const MAJORS=['C','G','D','A','E','B','F'+SH,'D'+FL,'A'+FL,'E'+FL,'B'+FL,'F'];
+const MINORS=['Am','Em','Bm','F'+SH+'m','C'+SH+'m','G'+SH+'m','E'+FL+'m','B'+FL+'m','Fm','Cm','Gm','Dm'];
+const SCALES={};
+SCALES['C']=['C','D','E','F','G','A','B'];
+SCALES['G']=['G','A','B','C','D','E','F'+SH];
+SCALES['D']=['D','E','F'+SH,'G','A','B','C'+SH];
+SCALES['A']=['A','B','C'+SH,'D','E','F'+SH,'G'+SH];
+SCALES['E']=['E','F'+SH,'G'+SH,'A','B','C'+SH,'D'+SH];
+SCALES['B']=['B','C'+SH,'D'+SH,'E','F'+SH,'G'+SH,'A'+SH];
+SCALES['F'+SH]=['F'+SH,'G'+SH,'A'+SH,'B','C'+SH,'D'+SH,'E'+SH];
+SCALES['D'+FL]=['D'+FL,'E'+FL,'F','G'+FL,'A'+FL,'B'+FL,'C'];
+SCALES['A'+FL]=['A'+FL,'B'+FL,'C','D'+FL,'E'+FL,'F','G'];
+SCALES['E'+FL]=['E'+FL,'F','G','A'+FL,'B'+FL,'C','D'];
+SCALES['B'+FL]=['B'+FL,'C','D','E'+FL,'F','G','A'];
+SCALES['F']=['F','G','A','B'+FL,'C','D','E'];
+const SIGS={'C':'No sharps or flats','G':'1 sharp','D':'2 sharps','A':'3 sharps','E':'4 sharps','B':'5 sharps'};
+SIGS['F'+SH]='6 sharps'; SIGS['D'+FL]='5 flats'; SIGS['A'+FL]='4 flats'; SIGS['E'+FL]='3 flats'; SIGS['B'+FL]='2 flats'; SIGS['F']='1 flat';
 const DIA_LEVELS={
   Beginner:{suf:['','m','m','','','m','dim'], rn:['I','ii','iii','IV','V','vi','vii°']},
-  Intermediate:{suf:['maj7','m7','m7','maj7','7','m7','m7♭5'], rn:['Imaj7','ii7','iii7','IVmaj7','V7','vi7','viiø']},
-  Advanced:{suf:['maj9','m9','m7','maj9','13','m9','m7♭5'], rn:['Imaj9','ii9','iii7','IVmaj9','V13','vi9','viiø']}
+  Intermediate:{suf:['maj7','m7','m7','maj7','7','m7','m7'+FL+'5'], rn:['Imaj7','ii7','iii7','IVmaj7','V7','vi7','viiø']},
+  Advanced:{suf:['maj9','m9','m7','maj9','13','m9','m7'+FL+'5'], rn:['Imaj9','ii9','iii7','IVmaj9','V13','vi9','viiø']}
 };
-const SUF_DISP={'':'','m':'m','dim':'°','maj7':'Δ7','m7':'m7','7':'7','m7♭5':'ø','maj9':'Δ9','m9':'m9','13':'13'};
-let ckSel='F';
+const SUF_DISP={'':'','m':'m','dim':'°','maj7':'Δ7','m7':'m7','7':'7','maj9':'Δ9','m9':'m9','13':'13'};
+SUF_DISP['m7'+FL+'5']='ø';
+let ckSel='C';
 function wedgePath(cx,cy,r0,r1,a0,a1){
   const p=(r,a)=>[cx+r*Math.sin(a),cy-r*Math.cos(a)];
   const [x0,y0]=p(r1,a0),[x1,y1]=p(r1,a1),[x2,y2]=p(r0,a1),[x3,y3]=p(r0,a0);
@@ -1228,7 +1281,7 @@ function buildWheel(){
   const ct=document.createElementNS('http://www.w3.org/2000/svg','text');
   ct.setAttribute('x',cx); ct.setAttribute('y',cy+6); ct.setAttribute('text-anchor','middle');
   ct.setAttribute('font-size','15'); ct.setAttribute('fill','var(--gold)'); ct.setAttribute('font-weight','700');
-  ct.setAttribute('font-family','Georgia,serif'); ct.setAttribute('id','wheelCenter'); ct.textContent='F';
+  ct.setAttribute('font-family','Georgia,serif'); ct.setAttribute('id','wheelCenter'); ct.textContent='C';
   svg.appendChild(ct);
 }
 function drawWheel(){
@@ -1241,35 +1294,41 @@ function drawWheel(){
   document.getElementById('wheelCenter').textContent=ckSel;
   document.getElementById('ckName').textContent=ckSel+' Major';
   document.getElementById('ckSig').textContent=SIGS[ckSel]+' · relative minor: '+MINORS[i].replace('m',' minor');
-  document.getElementById('ckChip').textContent= i===0?'Home key':(i<=6?`${i} fifth${i>1?'s':''} up`:`${12-i} fifth${12-i>1?'s':''} down`);
+  const home=SONG?wheelKeyFor(SONG):'C';
+  const d=(i-MAJORS.indexOf(home)+12)%12;
+  document.getElementById('ckChip').textContent = d===0?(SONG?'Song key':'Home key')
+    : d<=6?`${d} fifth${d>1?'s':''} up`:`${12-d} fifth${12-d>1?'s':''} down`;
   const scale=SCALES[ckSel], row=document.getElementById('diaRow'); row.innerHTML='';
   const dia=DIA_LEVELS[level];
-  scale.forEach((n,d)=>{
-    const suf=dia.suf[d];
-    const cell=document.createElement('div'); cell.className='dia'+(d===0?' one':'');
-    cell.innerHTML=`<div class="rn">${dia.rn[d]}</div><div class="cn">${n}${SUF_DISP[suf]}</div>`;
+  scale.forEach((n,deg)=>{
+    const suf=dia.suf[deg];
+    const cell=document.createElement('div'); cell.className='dia'+(deg===0?' one':'');
+    cell.innerHTML=`<div class="rn">${dia.rn[deg]}</div><div class="cn">${n}${SUF_DISP[suf]}</div>`;
     cell.addEventListener('click',()=>{
-      const plain=n.replace('♯','#').replace('♭','b');
-      if(PC[plain]===undefined) return;
-      openChordAbs(NOTE_NAMES[PC[plain]]+suf); go('dict');
-      playNotes(QUAL[suf].iv.map(iv=>60+PC[plain]+iv),1.0);
+      if(PC[n]===undefined) return;
+      openChordAbs(NOTE_NAMES[PC[n]]+suf); go('dict');
+      playNotes(QUAL[suf].iv.map(iv=>60+PC[n]+iv),1.0);
     });
     row.appendChild(cell);
   });
   document.getElementById('ckHint').textContent=
     `Tap any key on the wheel. Diatonic chords shown at ${level} level — tap one to open it in the dictionary.`;
 }
-buildWheel(); drawWheel();
 
-/* ================= Record ================= */
+/* ================= Record (simulated live recognition UI) ================= */
 const wave=document.getElementById('wave');
 for(let i=0;i<40;i++){ const b=document.createElement('i'); b.style.setProperty('--h',(25+Math.random()*70)+'%');
   b.style.animationDelay=(Math.random()*-1)+'s'; b.style.animationDuration=(0.5+Math.random()*0.8)+'s'; wave.appendChild(b); }
 renderPiano(document.getElementById('recPiano'),48,72,new Map());
-const DETECTIONS=[['F',94],['B♭maj7',91],['C7',89],['Dm7',96],['F7',88],['Gm7',92]];
+let DETECTIONS=[];
+function buildDetections(){
+  const sc=scaleNotes();
+  DETECTIONS=[[sc[0],94],[sc[3]+'maj7',91],[sc[4]+'7',89],[sc[5]+'m7',96],[sc[0]+'7',88],[sc[1]+'m7',92]];
+}
 let listening=false, recTimer=null, di=0;
 function detect(){
-  const [sym,conf]=DETECTIONS[di%DETECTIONS.length]; di++;
+  const d=DETECTIONS[di%DETECTIONS.length]; di++;
+  const sym=d[0], conf=d[1];
   document.getElementById('recChord').textContent=sym;
   document.getElementById('recConf').style.width=conf+'%';
   document.getElementById('recConfN').textContent=conf+'%';
@@ -1289,6 +1348,116 @@ document.getElementById('recBtn').addEventListener('click',()=>{
     renderPiano(document.getElementById('recPiano'),48,72,new Map()); }
 });
 
+/* ================= YouTube import → analysis service ================= */
+function parseYouTube(raw){
+  try{
+    let u=raw.trim(); if(!/^https?:\/\//i.test(u)) u='https://'+u;
+    const url=new URL(u);
+    const h=url.hostname.replace(/^(www|m)\./,'');
+    let id=null;
+    if(h==='youtu.be') id=url.pathname.slice(1).split('/')[0];
+    else if(h==='youtube.com'||h==='music.youtube.com'){
+      if(url.pathname==='/watch') id=url.searchParams.get('v');
+      else{ const m=url.pathname.match(/^\/(shorts|embed|live)\/([\w-]+)/); if(m) id=m[2]; }
+    }
+    return (id&&/^[\w-]{8,16}$/.test(id))?id:null;
+  }catch(e){ return null; }
+}
+async function apiHealth(){
+  try{
+    const c=new AbortController(); const t=setTimeout(()=>c.abort(),3500);
+    const r=await fetch(apiBase()+'/health',{signal:c.signal}); clearTimeout(t);
+    return r.ok;
+  }catch(e){ return false; }
+}
+function stepRow(box,label){
+  const r=document.createElement('div'); r.className='ana-step';
+  r.innerHTML='<span class="st"></span><span class="tx">'+label+'</span><span class="dt"></span>';
+  box.appendChild(r); return r;
+}
+function setStep(r,state,detail){
+  r.classList.remove('doing','done','na'); if(state) r.classList.add(state);
+  r.querySelector('.st').textContent=state==='done'?'✓':state==='na'?'!':'';
+  if(detail!==undefined) r.querySelector('.dt').textContent=detail;
+}
+function showAnaError(msg){ const e=document.getElementById('anaError'); e.hidden=false; e.textContent=msg; }
+let pendingSong=null, pollTimer=null;
+async function runAnalysis(){
+  const raw=(document.getElementById('importUrl').value||'').trim();
+  const err=document.getElementById('importErr'); err.textContent='';
+  if(!raw){ err.textContent='Paste a YouTube link first.'; return; }
+  const vid=parseYouTube(raw);
+  if(!vid){
+    err.textContent=/spotify\.|music\.apple\.|soundcloud\./i.test(raw)
+      ? 'Only YouTube import is supported right now — other sources are on the roadmap.'
+      : 'That doesn’t look like a valid YouTube link.';
+    return;
+  }
+  clearInterval(pollTimer); pendingSong=null;
+  const box=document.getElementById('anaSteps'); box.innerHTML='';
+  document.getElementById('anaOpen').style.display='none';
+  document.getElementById('anaError').hidden=true;
+  document.getElementById('anaTitle').textContent='Analyzing song…';
+  document.getElementById('anaSrc').textContent='▶ youtube.com/watch?v='+vid;
+  document.getElementById('anaFoot').textContent='Analysis service: '+apiBase();
+  document.getElementById('anaBack').classList.add('on');
+  const s0=stepRow(box,'Contacting analysis service');
+  setStep(s0,'doing');
+  if(!await apiHealth()){
+    setStep(s0,'na','unreachable');
+    showAnaError(`Analysis service unreachable at ${apiBase()}. Start it with run-server.ps1 in the project folder, or set its URL under Settings → Analysis service.`);
+    return;
+  }
+  setStep(s0,'done');
+  const s1=stepRow(box,'Extracting audio');
+  const s2=stepRow(box,'Analyzing — key · tempo · time signature · chords · sections');
+  setStep(s1,'doing');
+  let jobId;
+  try{
+    const r=await fetch(apiBase()+'/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url:'https://www.youtube.com/watch?v='+vid})});
+    jobId=(await r.json()).jobId;
+    if(!jobId) throw new Error('no job id returned');
+  }catch(e){ setStep(s1,'na','failed'); showAnaError('Could not submit the analysis job: '+e.message); return; }
+  pollTimer=setInterval(async()=>{
+    let st;
+    try{ st=await (await fetch(apiBase()+'/jobs/'+jobId)).json(); }
+    catch(e){ clearInterval(pollTimer); setStep(s1,'na'); showAnaError('Lost connection to the analysis service mid-job.'); return; }
+    if(st.status==='downloading') setStep(s1,'doing',st.step||'');
+    else if(st.status==='analyzing'){ setStep(s1,'done'); setStep(s2,'doing',st.step||''); }
+    else if(st.status==='error'){
+      clearInterval(pollTimer); setStep(s1,'na'); setStep(s2,'na');
+      showAnaError('Analysis failed: '+(st.error||'unknown error'));
+    }
+    else if(st.status==='done'){
+      clearInterval(pollTimer); setStep(s1,'done');
+      try{
+        const song=normalizeSong(await (await fetch(apiBase()+'/jobs/'+jobId+'/result')).json(),apiBase());
+        setStep(s2,'done',`${song.analysis.bars.length} bars · ${pretty(song.analysis.key.tonic)} ${song.analysis.key.mode} · ${Math.round(song.analysis.tempo.bpm)} BPM`);
+        document.getElementById('anaTitle').textContent=song.title;
+        document.getElementById('anaSrc').textContent='▶ '+(song.artist||'')+' · youtube.com/watch?v='+vid;
+        libUpsert(song); pendingSong=song; renderLibrary();
+        document.getElementById('anaOpen').style.display='inline-flex';
+      }catch(e){ setStep(s2,'na'); showAnaError('Could not fetch the analysis result: '+e.message); }
+    }
+  },1500);
+}
+document.getElementById('analyzeBtn').addEventListener('click',runAnalysis);
+document.getElementById('importUrl').addEventListener('keydown',e=>{ if(e.key==='Enter') runAnalysis(); });
+document.querySelectorAll('.import-row .chip[data-src]').forEach(ch=>
+  ch.addEventListener('click',()=>{
+    const err=document.getElementById('importErr');
+    if(ch.dataset.src==='youtube'){ err.textContent=''; document.getElementById('importUrl').focus(); }
+    else err.textContent=ch.textContent.trim().replace(/^\S+\s*/,'')+' import is on the roadmap — YouTube links only for now.';
+  }));
+function closeAna(){ document.getElementById('anaBack').classList.remove('on'); clearInterval(pollTimer); }
+document.getElementById('anaClose').addEventListener('click',closeAna);
+document.getElementById('anaBack').addEventListener('click',e=>{ if(e.target.id==='anaBack') closeAna(); });
+document.getElementById('anaOpen').addEventListener('click',()=>{
+  if(pendingSong) setActiveSong(pendingSong);
+  closeAna(); go('player');
+});
+
 /* ================= Settings ================= */
 document.querySelectorAll('[data-tog]').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('on')));
 document.querySelectorAll('.seg').forEach(s=>{ if(s.id==='invSeg'||s.hasAttribute('data-custom'))return;
@@ -1299,17 +1468,36 @@ function bpl(d){ bplV=Math.min(8,Math.max(2,bplV+d)); document.getElementById('b
   document.documentElement.style.setProperty('--bpl',bplV); }
 document.getElementById('lyrRange').addEventListener('input',e=>
   document.documentElement.style.setProperty('--lyr',e.target.value));
+const apiInput=document.getElementById('apiUrl');
+apiInput.value=API;
+document.getElementById('apiSave').addEventListener('click',async()=>{
+  API=(apiInput.value||'').trim()||'http://127.0.0.1:8756';
+  apiInput.value=API;
+  try{ localStorage.setItem('pc-api',API); }catch(e){}
+  const st=document.getElementById('apiStatus');
+  st.textContent='Checking '+apiBase()+' …';
+  st.textContent=(await apiHealth())
+    ? '✓ Connected to the analysis service at '+apiBase()
+    : '✕ Not reachable at '+apiBase()+'. Start it with run-server.ps1.';
+});
+
+/* ================= Boot ================= */
+buildWave(); buildWheel();
+(async()=>{
+  try{
+    const r=await fetch('songs/amazing-grace.json',{cache:'no-cache'});
+    if(r.ok) libUpsert(normalizeSong(await r.json(),''));
+  }catch(e){}
+  let songToOpen=null;
+  try{
+    const actId=localStorage.getItem('pc-active');
+    if(actId) songToOpen=LIB.find(x=>x.id===actId)||null;
+  }catch(e){}
+  if(songToOpen) setActiveSong(songToOpen); else refreshAll();
+})();
 
 /* ================= PWA ================= */
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
-/* Load the recording as a blob so seeking works on any host (and offline via the SW cache) */
-(async()=>{
-  try{
-    const url=SONG_AUDIO.canPlayType('audio/mpeg')?'audio/amazing-grace.mp3':'audio/amazing-grace.ogg';
-    const res=await fetch(url);
-    if(res.ok){ SONG_AUDIO.src=URL.createObjectURL(await res.blob()); SONG_AUDIO.load(); }
-  }catch(e){}
-})();
 /* Keep the screen awake while performing */
 let wakeLock=null;
 async function updateWakeLock(){
@@ -1319,6 +1507,7 @@ async function updateWakeLock(){
   }catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&playing) updateWakeLock(); });
+
 </script>
 </body>
 </html>
