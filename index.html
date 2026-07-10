@@ -1518,6 +1518,11 @@ function pollJob(jobId,s1,s2,doneSrc){
     let st;
     try{ st=await (await fetch(apiBase()+'/jobs/'+jobId)).json(); }
     catch(e){ clearInterval(pollTimer); setStep(s1,'na'); showAnaError('Lost connection to the analysis service mid-job. Try again in a moment.',false,true); return; }
+    if(!st||!st.status){
+      clearInterval(pollTimer); setStep(s1,'na'); setStep(s2,'na');
+      showAnaError('The analysis service restarted mid-job (free hosting does this under load). Please try the import again.',false,true);
+      return;
+    }
     if(st.status==='downloading') setStep(s1,'doing',st.step||'');
     else if(st.status==='analyzing'){ setStep(s1,'done'); setStep(s2,'doing',st.step||''); }
     else if(st.status==='error'){
