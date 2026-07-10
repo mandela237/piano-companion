@@ -855,7 +855,10 @@ const SPEEDS=[0.5,0.75,1.0,1.25];
    production (GitHub Pages etc.): no default — a deployed backend must be configured. */
 const IS_LOCAL=['localhost','127.0.0.1'].includes(location.hostname);
 const LOCAL_API='http://127.0.0.1:8756';
-let API=localStorage.getItem('pc-api')||(IS_LOCAL?LOCAL_API:'');
+/* Set PROD_API to the deployed backend URL (https://…) to give every user a
+   working default — Settings then only exists as a per-user override. */
+const PROD_API='';
+let API=localStorage.getItem('pc-api')||(IS_LOCAL?LOCAL_API:PROD_API);
 const apiBase=()=>API.replace(/\/+$/,'');
 const apiConfigured=()=>!!apiBase();
 function apiMixedContent(){
@@ -1513,7 +1516,7 @@ paintApiStatus();
 document.getElementById('apiSave').addEventListener('click',async()=>{
   API=(apiInput.value||'').trim().replace(/\/+$/,'');
   if(API&&!/^https?:\/\//i.test(API)) API='https://'+API;
-  if(!API&&IS_LOCAL) API=LOCAL_API;
+  if(!API) API=IS_LOCAL?LOCAL_API:PROD_API;
   apiInput.value=API;
   try{ API?localStorage.setItem('pc-api',API):localStorage.removeItem('pc-api'); }catch(e){}
   if(!apiConfigured()){ paintApiStatus(); return; }
